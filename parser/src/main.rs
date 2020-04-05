@@ -1,4 +1,4 @@
-// mod format;
+mod format;
 mod parse;
 mod utils;
 
@@ -41,5 +41,14 @@ pub fn main() {
   for element in &elements {
     println!("{:?}", element);
   }
-  // println!("{}", format::format(&elements));
+  println!(
+    "{}",
+    format::format(
+      &elements,
+      &format::Context {
+        limit: 80,
+        indentation: "  ".to_string(),
+      }
+    )
+  );
 }
