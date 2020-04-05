@@ -81,24 +81,24 @@ fn scan(source: &str) -> Vec<Token> {
 #[derive(Debug, Eq, PartialEq)]
 pub enum Element {
     Text(String),
-    Block(String, Content),
+    Block(String, Vec<Body>),
 }
-type Content = Vec<Element>;
+pub type Body = Vec<Element>;
 use Element::*;
 
-pub fn parse(source: &str) -> Content {
+pub fn parse(source: &str) -> Body {
     let tokens = scan(source);
     let tokens: Vec<Token> = tokens
         .into_iter()
         .skip_while(|token| token.kind.is_whitespace())
         .collect();
 
-    parse_content(&mut tokens.into_iter().peekable())
+    parse_body(&mut tokens.into_iter().peekable())
 }
 
-fn parse_content(state: &mut Peekable<IntoIter<Token>>) -> Content {
+fn parse_body(state: &mut Peekable<IntoIter<Token>>) -> Body {
     let mut token_buffer: Vec<Token> = vec![];
-    let mut content: Content = vec![];
+    let mut body: Body = vec![];
 
     loop {
         match state.next() {
@@ -118,24 +118,45 @@ fn parse_content(state: &mut Peekable<IntoIter<Token>>) -> Content {
                     };
 
                     if let Some(text) = parse_text(token_buffer) {
-                        content.push(text);
+                        body.push(text);
                     }
                     token_buffer = vec![];
-                    let block_children = parse_content(state);
-                    content.push(Block(block_name, block_children));
+                    // Note: parse_body already consumes the Close token.
+                    let mut bodies: Vec<Body> = vec![parse_body(state)];
+                    loop {
+                        while state
+                            .peek()
+                            .map(|token| token.kind.is_whitespace())
+                            .unwrap_or(false)
+                        {
+                            state.next();
+                        }
+                        if state
+                            .peek()
+                            .map(|token| token.kind == Open)
+                            .unwrap_or(false)
+                        {
+                            state.next();
+                            bodies.push(parse_body(state));
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+                    body.push(Block(block_name, bodies));
                 }
                 Close => {
                     if let Some(text) = parse_text(token_buffer) {
-                        content.push(text);
+                        body.push(text);
                     }
-                    return content;
+                    return body;
                 }
             },
             None => {
                 if let Some(text) = parse_text(token_buffer) {
-                    content.push(text);
+                    body.push(text);
                 }
-                return content;
+                return body;
             }
         }
     }
