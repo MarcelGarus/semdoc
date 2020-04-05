@@ -39,8 +39,8 @@ document {
       title {Section 1}
       content {}
     }
-    This is a bold{sample} document written in italic{Marcel's legendary
-    markup language}.
+    This is a bold{ sample } document written in italic{ Marcel's legendary
+    markup language }.
     image {
       url {https://someimage.com/image}
       alternative {Alternative text}
