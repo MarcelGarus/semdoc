@@ -11,3 +11,6 @@ edition = "2018"
 [[bin]]
 name = "scanner"
 path = "src/main.rs"
+
+[dependencies]
+clap = "2.26.0"

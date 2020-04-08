@@ -12,12 +12,8 @@ enum TokenKind {
 }
 use TokenKind::*;
 
-trait IsWhitespace {
-    fn is_whitespace(&self) -> bool;
-}
-
-impl IsWhitespace for TokenKind {
-    fn is_whitespace(&self) -> bool {
+impl TokenKind {
+    fn is_whitespace(self) -> bool {
         match self {
             Whitespace | Newline => true,
             _ => false,
@@ -25,6 +21,7 @@ impl IsWhitespace for TokenKind {
     }
 }
 
+/// Every character of the input file can be directly mapped to a [TokenKind].
 fn determine_token_kind(character: char) -> TokenKind {
     match character {
         '{' => Open,
@@ -35,34 +32,36 @@ fn determine_token_kind(character: char) -> TokenKind {
     }
 }
 
+/// A higher-level abstraction on the source file.
 #[derive(Debug, Eq, PartialEq)]
 struct Token {
     kind: TokenKind,
     value: String,
-    position: Range<usize>,
+    position: Range<usize>, // Position in the source file in bytes.
 }
 
+/// Truns a source into a [Vec] of [Token]s by merging adjacent characters that
+/// map to the same [TokenKind] into one [Token].
 fn scan(source: &str) -> Vec<Token> {
-    let chars = source.chars();
     let mut tokens: Vec<Token> = vec![];
     let mut current_kind: Option<TokenKind> = None;
-    let mut buffer: Vec<char> = vec![];
+    let mut buffer = String::new();
     let mut start: usize = 0;
 
-    for (end, new_char) in chars.enumerate() {
-        let next_kind = determine_token_kind(new_char);
+    for (end, next_char) in source.chars().enumerate() {
+        let next_kind = determine_token_kind(next_char);
 
         if current_kind == Some(next_kind) {
-            buffer.push(new_char);
+            buffer.push(next_char);
         } else {
             if let Some(previous_kind) = current_kind {
                 tokens.push(Token {
                     kind: previous_kind,
-                    value: buffer.into_iter().collect::<String>(),
+                    value: buffer,
                     position: start..end,
                 });
             }
-            buffer = vec![new_char];
+            buffer = format!("{}", next_char);
             current_kind = Some(next_kind);
             start = end;
         }
@@ -71,17 +70,18 @@ fn scan(source: &str) -> Vec<Token> {
     if let Some(last_kind) = current_kind {
         tokens.push(Token {
             kind: last_kind,
-            value: buffer.into_iter().collect::<String>(),
+            value: buffer,
             position: start..source.len(),
         });
     }
     tokens
 }
 
+/// An [Element] in the abstract syntax tree.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Element {
     Text(String),
-    Block(String, Vec<Body>),
+    Block(String, Vec<Body>), // A block has a name and bodies.
 }
 pub type Body = Vec<Element>;
 use Element::*;
@@ -124,6 +124,7 @@ fn parse_body(state: &mut Peekable<IntoIter<Token>>) -> Body {
                     // Note: parse_body already consumes the Close token.
                     let mut bodies: Vec<Body> = vec![parse_body(state)];
                     loop {
+                        // Go to the next token that's not whitespace.
                         while state
                             .peek()
                             .map(|token| token.kind.is_whitespace())
@@ -136,6 +137,7 @@ fn parse_body(state: &mut Peekable<IntoIter<Token>>) -> Body {
                             .map(|token| token.kind == Open)
                             .unwrap_or(false)
                         {
+                            // There's another body!
                             state.next();
                             bodies.push(parse_body(state));
                             continue;
@@ -166,30 +168,31 @@ fn parse_text(tokens: Vec<Token>) -> Option<Element> {
     if tokens.is_empty() || tokens.iter().all(|token| token.kind.is_whitespace()) {
         return None;
     }
-    let mut text_parts: Vec<String> = vec![];
+    let mut text = String::new();
     let mut tokens = tokens.into_iter().peekable();
 
     while let Some(token) = tokens.next() {
         match token.kind {
             Open | Close => panic!("parse_text called with tokens that contain open or close"),
-            Word => text_parts.push(token.value),
+            Word => text.push_str(&token.value),
             Whitespace => {
                 if let Some(next) = tokens.peek() {
                     if next.kind == Newline {
-                        text_parts.push("\n".to_string());
+                        text.push('\n');
                         continue;
                     }
                 }
-                text_parts.push(token.value)
+                text.push_str(&token.value)
             }
             Newline => {
                 if let Some(next) = tokens.peek() {
                     if next.kind == Whitespace {
                         tokens.next();
+                        text.push(' ');
                     }
                 }
             }
         }
     }
-    Some(Text(text_parts.join("").trim().to_string()))
+    Some(Text(text.trim().to_string()))
 }
