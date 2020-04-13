@@ -174,30 +174,61 @@ fn wrap_words(text: String, request: &Request) -> Response {
     let mut lines: Vec<String> = vec![];
     let mut line = "".to_string();
     let mut offset = request.indentation_string().len() + request.offset;
-    for word in text.split_whitespace() {
-        if offset + 1 + word.len() <= request.config.limit {
+    let mut word = "".to_string();
+
+    fn flush_word(
+        request: &Request,
+        lines: &mut Vec<String>,
+        line: &mut String,
+        offset: &mut usize,
+        word: &mut String,
+    ) {
+        // First push the word.
+        if *offset + word.len() <= request.config.limit {
             // The word still fits in the line.
-            if offset > request.indentation_string().len() {
-                line.push(' ');
-                offset += 1;
-            }
             line.push_str(&word);
-            offset += word.len();
+            *offset += word.len();
         } else {
             // The word doesn't fit in the line anymore.
-            if offset > 0 {
+            // Remove trailing spaces.
+            loop {
+                match line.pop() {
+                    Some(' ') => continue,
+                    Some(other) => {
+                        line.push(other);
+                        break;
+                    }
+                    None => break,
+                }
+            }
+            if *offset > 0 {
                 // If this is the only word in this line though, we still need
                 // to squeeze it in, because it won't fit in the next lines
                 // either (we remain at the same indentation).
-                lines.push(line);
-                line = request.indentation_string();
-                offset = line.len();
+                lines.push(std::mem::replace(line, request.indentation_string()));
+                *offset = line.len();
             }
             line.push_str(&word);
-            offset += word.len();
+            *offset += word.len();
         }
     }
 
+    for chr in text.chars() {
+        if chr.is_whitespace() {
+            if !word.is_empty() {
+                flush_word(request, &mut lines, &mut line, &mut offset, &mut word);
+            }
+            word.clear();
+            line.push(chr);
+            offset += 1;
+        } else {
+            word.push(chr);
+        }
+    }
+
+    if !word.is_empty() {
+        flush_word(request, &mut lines, &mut line, &mut offset, &mut word);
+    }
     if offset > 0 {
         lines.push(line);
     }
