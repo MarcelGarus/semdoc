@@ -1,8 +1,8 @@
-use crate::ssss::parse::{Element, Element::*};
-use crate::ssss::utils::Single;
+use crate::ssss::tree::*;
+use crate::utils::Single;
 
-pub fn format(elements: &[Element], config: &FormatConfig) -> String {
-    let response = elements.format(&Request {
+pub fn format(nodes: &[Node], config: &FormatConfig) -> String {
+    let response = nodes.format(&Request {
         config,
         indentation_level: 0,
         offset: 0,
@@ -13,8 +13,8 @@ pub fn format(elements: &[Element], config: &FormatConfig) -> String {
 }
 
 pub struct FormatConfig {
-    pub limit: usize,        // Soft horizontal character limit.
-    pub indentation: String, // String that's used repeatedly to indent.
+    pub limit: usize,       // Soft horizontal character limit.
+    pub indentation: usize, // String that's used repeatedly to indent.
 }
 
 struct Request<'a> {
@@ -25,7 +25,7 @@ struct Request<'a> {
 
 impl<'a> Request<'a> {
     fn indentation_string(&self) -> String {
-        self.config.indentation.repeat(self.indentation_level)
+        " ".repeat(self.config.indentation * self.indentation_level)
     }
 }
 
@@ -57,9 +57,11 @@ trait MaybeInlinable {
 impl MaybeInlinable for Element {
     fn is_inlinable(&self) -> bool {
         match self {
-            Text(_) => true,
-            Block(_, bodies) => {
-                if let Some(Some(Text(_))) = bodies.single().map(|body| body.single()) {
+            Element::Text(_) => true,
+            Element::Block { bodies, .. } => {
+                if let Some(Some(AnyData!(Element::Text(_)))) =
+                    bodies.single().map(|body| body.single())
+                {
                     true
                 } else {
                     false
@@ -72,9 +74,11 @@ impl MaybeInlinable for Element {
 impl Formattable for Element {
     fn format(&self, request: &Request) -> Response {
         match self {
-            Text(text) => wrap_words(text.to_string(), request),
-            Block(name, bodies) => {
-                if let Some(Some(Text(text))) = bodies.single().map(|body| body.single()) {
+            Element::Text(text) => wrap_words(text.to_string(), request),
+            Element::Block { name, bodies } => {
+                if let Some(Some(AnyData!(Element::Text(text)))) =
+                    bodies.single().map(|body| body.single())
+                {
                     return wrap_words(
                         if request.offset > 0 {
                             format!("{}{{ {} }}", name, text)
@@ -127,7 +131,7 @@ impl Formattable for Element {
     }
 }
 
-impl Formattable for [Element] {
+impl Formattable for [Node] {
     fn format(&self, request: &Request) -> Response {
         // Inlining of single-text-only bodies needs to be handled at block-
         // level, because the block also needs to be inlined. So here, we know
@@ -141,8 +145,8 @@ impl Formattable for [Element] {
         let mut text = "".to_string();
 
         let mut offset = 0;
-        for element in self {
-            let response = element.format(&Request { offset, ..*request });
+        for node in self {
+            let response = node.element.format(&Request { offset, ..*request });
             match response.inlining {
                 Inlining::NotInlined() => {
                     if !text.is_empty() && offset > request.indentation_string().len() {

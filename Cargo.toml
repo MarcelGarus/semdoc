@@ -1,11 +1,11 @@
 [package]
-name = "mlml_parser"
+name = "pad"
 version = "0.1.0"
 authors = ["Marcel Garus <marcel.garus@gmail.com>"]
 edition = "2018"
 
 # [lib]
-# name = "mlml_parser"
+# name = "pad"
 # path = "src/parser.rs"
 
 [[bin]]

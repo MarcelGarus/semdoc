@@ -6,7 +6,7 @@ document {
   be placed somewhere between Markdown, Latex and PDF.
   section { ssss — surprisingly simple structure of strings } {
     This is a very simple format that organizes strings in a hierarchical
-    structure. The only special characters that exist are "{{" and "}}".
+    structure. The only special characters that exist are "{" and "}".
   }
   
   section { Formatting lines } {
@@ -17,17 +17,15 @@ document {
       newline is inserted before and it's indented.
     }
     section { Blocks } {
-      Blocks have three different formatting
-      modes:
+      Blocks have three different formatting modes:
       inline-section { Inlining. } {
         If a block contains only text and no other blocks, it can be inlined,
         meaning that it may start in the middle of a line while still breaking
-        its
-        content:
+        its content:
         code { mlml } {
           This is text with some bold{ blocks that are formatted
-          inline }. Notice that italic{ their contents may
-          break }.
+          inline } . Notice that italic{ their contents may
+          break } .
         }
         
       }
@@ -54,7 +52,10 @@ document {
       
     }
     This is a bold{ sample } document written in italic{ Marcel's
-    legendary markup language }.
-    image {
-      url { https://someimage.com/image } alternative{ Alternative text }
-    }
+    legendary markup language } .
+    image { url { https://someimage.com/image } alternative{ Alternative text } }
+    
+  }
+  
+}
+
