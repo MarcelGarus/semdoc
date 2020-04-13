@@ -74,7 +74,7 @@ impl MaybeInlinable for Element {
 impl Formattable for Element {
     fn format(&self, request: &Request) -> Response {
         match self {
-            Element::Text(text) => wrap_words(text.to_string(), request),
+            Element::Text(text) => wrap_words(text.replace("{", "{{").replace("}", "}}"), request),
             Element::Block { name, bodies } => {
                 if let Some(Some(AnyData!(Element::Text(text)))) =
                     bodies.single().map(|body| body.single())

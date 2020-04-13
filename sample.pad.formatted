@@ -6,7 +6,7 @@ document {
   be placed somewhere between Markdown, Latex and PDF. 
   section { ssss — surprisingly simple structure of strings } {
     This is a very simple format that organizes strings in a hierarchical
-    structure. The only special characters that exist are "{" and "}".
+    structure. The only special characters that exist are "{{" and "}}".
   }
   
   section { Formatting lines } {
