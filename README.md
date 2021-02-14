@@ -1,6 +1,6 @@
 ## SemDoc – Semantic Document
 
-SemDoc is a document file format that allows writers to focus on the content solely and empowers readers to customize the appearance and adapt it to any device and their needs.
+SemDoc is a document file format that allows writers to focus on the content solely and empowers readers to customize the appearance and adapt it to their devices and needs.
 
 ### What's wrong with the world
 
@@ -30,7 +30,7 @@ Instead, people use it for things it's utterly ill-fitted for in today's world:
 * **The layout is completely static.**
   That's probably PDF's biggest downside.
   I mean, instead of a PDF, I could just as quickly give you a vector image that you can zoom around in (well, you can't select the text, but other than that, it's just as adaptive).  
-  Do you want to view a PDF on a big landscape screen? Say hello to inefficient usage of space.  
+  Do you want to view a PDF on a big landscape screen? Say hello to inefficient use of space.  
   And don't get me started on viewing my homework assignments on the train. I refuse to believe that having to put my phone into landscape mode just to read a single line without continually scrolling back and forth is the best user experience we can come up with in the 21st century.
 * **No one uses the advanced features correctly.**
   Yes, PDFs support more features than vector images.
