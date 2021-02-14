@@ -27,8 +27,8 @@ Instead, people use it for things it's utterly ill-fitted for in today's world:
 * **PDF organizes everything into pages.**
   This might have made sense back when you printed everything, but nowadays, we view PDFs on our screens.
   It's not like scrolling is a particularly new invention.
-* **It's completely static.**
-  Being static is probably PDFs biggest downside.
+* **The layout is completely static.**
+  That's probably PDF's biggest downside.
   I mean, instead of a PDF, I could just as quickly give you a vector image that you can zoom around in (well, you can't select the text, but other than that, it's just as adaptive).  
   Do you want to view a PDF on a big landscape screen? Say hello to inefficient usage of space.  
   And don't get me started on viewing my homework assignments on the train. I refuse to believe that having to put my phone into landscape mode just to read a single line without continually scrolling back and forth is the best user experience we can come up with in the 21st century.
