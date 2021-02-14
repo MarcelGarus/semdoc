@@ -1,6 +1,6 @@
 ## SemDoc – Semantic Document
 
-SemDoc is a file format that empowers writers to focus on the content solely and allows readers to customize the appearance and adapt it to any device and their needs.
+SemDoc is a document file format that allows writers to focus on the content solely and empowers readers to customize the appearance and adapt it to any device and their needs.
 
 ### What's wrong with the world
 
