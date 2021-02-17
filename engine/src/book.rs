@@ -1,4 +1,4 @@
-use super::engine::atoms::Atom;
+use super::atoms::Atom;
 
 #[derive(Debug)]
 pub enum Block {

@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+mod atoms;
 mod book;
-mod engine;
 
+use atoms::*;
 use book::{Block::*, *};
-use engine::atoms::*;
 
 pub fn main() {
     let doc = Section {
