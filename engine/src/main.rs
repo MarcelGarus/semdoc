@@ -3,9 +3,12 @@ use std::io::prelude::*;
 
 mod atoms;
 mod book;
+mod semdoc;
+mod utils;
 
 use atoms::*;
 use book::{Block::*, *};
+use semdoc::*;
 
 pub fn main() {
     let doc = Section {
@@ -15,8 +18,9 @@ pub fn main() {
             Text("This is a test.".to_string()),
         ])),
     };
-    let atom = doc.to_atom();
-    let bytes = atom.to_bytes();
+    let bytes = doc.serialize(SerializationOptions {
+        inline_probability: 0.1,
+    });
 
     for chunk in bytes.chunks(8) {
         for i in 0..8 {
@@ -28,8 +32,6 @@ pub fn main() {
     let mut file = File::create("helloworld.sd").unwrap();
     file.write_all(&bytes).unwrap();
 
-    let retrieved_atom = (&bytes[..]).to_atom().unwrap();
-    println!("Retrieved atoms: {:?}", retrieved_atom);
-    let retrieved_doc = retrieved_atom.to_block();
-    println!("Retrieved doc: {:?}", retrieved_doc);
+    let doc = SemDoc::deserialize(&bytes[..]);
+    println!("Retrieved doc: {:?}", doc);
 }
