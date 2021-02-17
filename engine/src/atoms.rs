@@ -10,6 +10,7 @@ pub enum Atom<'a> {
         kind: AtomKind,
         children: Vec<Atom<'a>>,
     },
+    Reference(Box<Atom<'a>>),
     Bytes(&'a [u8]),
 }
 
@@ -47,6 +48,14 @@ impl ToAtoms for [u8] {
                 Ok((atom, offset))
             }
             1 => {
+                let offset =
+                    (u64::clone_from_slice(&self[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff) as usize;
+                println!("Offset is {}", offset);
+                (&self[8 + offset..])
+                    .to_atom_internal()
+                    .map(|(child, _)| (Atom::Reference(Box::new(child)), 8))
+            }
+            2 => {
                 let length =
                     (u64::clone_from_slice(&self[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff) as usize;
                 let payload_bytes = &self[8..(8 + length)];
@@ -70,15 +79,24 @@ impl<'a> Atom<'a> {
                 bytes.push(u8::try_from(children.len()).unwrap());
                 bytes.extend_from_slice(&kind.to_be_bytes()[2..]);
                 for child in children {
-                    let child_bytes = child.to_bytes();
-                    bytes.extend_from_slice(&child_bytes);
+                    bytes.extend_from_slice(&child.to_bytes());
                 }
                 bytes
             }
-            Atom::Bytes(payload_bytes) => {
+            Atom::Reference(child) => {
+                todo!("Implement serializing Reference atoms.");
                 let mut bytes = vec![1];
-                bytes.extend_from_slice(&[0u8; 6]);
-                bytes.push(u8::try_from(payload_bytes.len()).unwrap());
+                // TODO(marcelgarus): Don't place lazy block inline.
+                // bytes.extend_from_slice(&u64::try_from(*offset).unwrap().to_be_bytes()[1..]);
+                bytes.extend_from_slice(&[0u8; 7]);
+                bytes.extend_from_slice(&child.to_bytes());
+                bytes
+            }
+            Atom::Bytes(payload_bytes) => {
+                let mut bytes = vec![2];
+                bytes.extend_from_slice(
+                    &u64::try_from(payload_bytes.len()).unwrap().to_be_bytes()[1..],
+                );
                 bytes.extend_from_slice(&payload_bytes);
                 bytes.align();
                 bytes
