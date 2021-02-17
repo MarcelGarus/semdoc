@@ -15,8 +15,8 @@ pub fn main() {
             Text("This is a test.".to_string()),
         ])),
     };
-    let atoms = doc.serialize();
-    let bytes = atoms.to_bytes();
+    let atom = doc.to_atom();
+    let bytes = atom.to_bytes();
 
     for chunk in bytes.chunks(8) {
         for i in 0..8 {
@@ -28,8 +28,8 @@ pub fn main() {
     let mut file = File::create("helloworld.sd").unwrap();
     file.write_all(&bytes).unwrap();
 
-    let retrieved_atoms = (&bytes[..]).to_atoms().unwrap();
-    println!("Retrieved atoms: {:?}", retrieved_atoms);
-    let retrieved_doc = retrieved_atoms.deserialize();
+    let retrieved_atom = (&bytes[..]).to_atom().unwrap();
+    println!("Retrieved atoms: {:?}", retrieved_atom);
+    let retrieved_doc = retrieved_atom.to_block();
     println!("Retrieved doc: {:?}", retrieved_doc);
 }

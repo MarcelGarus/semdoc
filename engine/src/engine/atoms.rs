@@ -12,18 +12,18 @@ pub enum Atom<'a> {
 }
 
 pub trait ToAtoms {
-    fn to_atoms(&self) -> Result<Atom, ()>;
-    fn to_atoms_internal(&self) -> Result<(Atom, usize), ()>;
+    fn to_atom(&self) -> Result<Atom, ()>;
+    fn to_atom_internal(&self) -> Result<(Atom, usize), ()>;
 }
 impl ToAtoms for [u8] {
-    fn to_atoms(&self) -> Result<Atom, ()> {
-        match self.to_atoms_internal() {
+    fn to_atom(&self) -> Result<Atom, ()> {
+        match self.to_atom_internal() {
             Ok((child, _)) => Ok(child),
             Err(_) => Err(()),
         }
     }
 
-    fn to_atoms_internal<'a>(&'a self) -> Result<(Atom, usize), ()> {
+    fn to_atom_internal<'a>(&'a self) -> Result<(Atom, usize), ()> {
         match self.first().unwrap() {
             0 => {
                 let num_children = *self.get(1).unwrap();
@@ -32,7 +32,7 @@ impl ToAtoms for [u8] {
                 let mut children: Vec<Atom<'a>> = vec![];
                 let mut offset = 8;
                 for _ in 0..num_children {
-                    match (&self[offset..]).to_atoms_internal() {
+                    match (&self[offset..]).to_atom_internal() {
                         Ok((child, length)) => {
                             children.push(child);
                             offset += length;

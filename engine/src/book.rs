@@ -19,20 +19,17 @@ pub enum Block {
     Comment,
 }
 
-pub trait SerializeToAtom {
-    fn serialize(&self) -> Atom;
+pub trait ToAtom {
+    fn to_atom(&self) -> Atom;
 }
-impl SerializeToAtom for Block {
-    fn serialize(&self) -> Atom {
+impl ToAtom for Block {
+    fn to_atom(&self) -> Atom {
         use Block::*;
 
         match self {
             Unknown { kind, children } => Atom::Block {
                 kind: *kind,
-                children: children
-                    .into_iter()
-                    .map(|child| child.serialize())
-                    .collect(),
+                children: children.iter().map(|child| child.to_atom()).collect(),
             },
             Empty => Atom::Block {
                 kind: 0,
@@ -44,21 +41,15 @@ impl SerializeToAtom for Block {
             },
             Section { title, body } => Atom::Block {
                 kind: 2,
-                children: vec![title.serialize(), body.serialize()],
+                children: vec![title.to_atom(), body.to_atom()],
             },
             DenseSequence(children) => Atom::Block {
                 kind: 3,
-                children: children
-                    .into_iter()
-                    .map(|child| child.serialize())
-                    .collect(),
+                children: children.iter().map(|child| child.to_atom()).collect(),
             },
             SplitSequence(children) => Atom::Block {
                 kind: 4,
-                children: children
-                    .into_iter()
-                    .map(|child| child.serialize())
-                    .collect(),
+                children: children.iter().map(|child| child.to_atom()).collect(),
             },
             Text(text) => Atom::Block {
                 kind: 5,
@@ -72,11 +63,11 @@ impl SerializeToAtom for Block {
     }
 }
 
-pub trait DeserializeToBlock {
-    fn deserialize(&self) -> Result<Block, ()>;
+pub trait ToBlock {
+    fn to_block(&self) -> Result<Block, ()>;
 }
-impl<'a> DeserializeToBlock for Atom<'a> {
-    fn deserialize(&self) -> Result<Block, ()> {
+impl<'a> ToBlock for Atom<'a> {
+    fn to_block(&self) -> Result<Block, ()> {
         use Block::*;
 
         Ok(match self {
@@ -85,19 +76,19 @@ impl<'a> DeserializeToBlock for Atom<'a> {
                 0 => Empty,
                 1 => Created,
                 2 => Section {
-                    title: Box::new(children.get(0).unwrap().deserialize().unwrap()),
-                    body: Box::new(children.get(1).unwrap().deserialize().unwrap()),
+                    title: Box::new(children.get(0).unwrap().to_block().unwrap()),
+                    body: Box::new(children.get(1).unwrap().to_block().unwrap()),
                 },
                 3 => DenseSequence(
                     children
-                        .into_iter()
-                        .map(|child| child.deserialize().unwrap())
+                        .iter()
+                        .map(|child| child.to_block().unwrap())
                         .collect(),
                 ),
                 4 => SplitSequence(
                     children
-                        .into_iter()
-                        .map(|child| child.deserialize().unwrap())
+                        .iter()
+                        .map(|child| child.to_block().unwrap())
                         .collect(),
                 ),
                 5 => Text(match *children.first().unwrap() {
@@ -108,8 +99,8 @@ impl<'a> DeserializeToBlock for Atom<'a> {
                 _ => Unknown {
                     kind: *kind,
                     children: children
-                        .into_iter()
-                        .map(|child| child.deserialize().unwrap())
+                        .iter()
+                        .map(|child| child.to_block().unwrap())
                         .collect(),
                 },
             },
