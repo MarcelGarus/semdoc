@@ -5,6 +5,7 @@ pub enum Block {
     // Special.
     Unknown { kind: u64, children: Vec<Block> },
     Empty,
+    Lazy(Box<Block>),
 
     // Meta.
     Created,
@@ -35,6 +36,7 @@ impl ToAtom for Block {
                 kind: 0,
                 children: vec![],
             },
+            Lazy(child) => Atom::Reference(Box::new(child.to_atom())),
             Created => Atom::Block {
                 kind: 1,
                 children: vec![],
@@ -71,7 +73,6 @@ impl<'a> ToBlock for Atom<'a> {
         use Block::*;
 
         Ok(match self {
-            Atom::Bytes(_) => return Err(()),
             Atom::Block { kind, children } => match kind {
                 0 => Empty,
                 1 => Created,
@@ -104,6 +105,7 @@ impl<'a> ToBlock for Atom<'a> {
                         .collect(),
                 },
             },
+            _ => return Err(()),
         })
     }
 }
