@@ -4,92 +4,41 @@ use super::utils::*;
 
 pub type AtomKind = u64;
 
+// TODO(marcelgarus): Add atom for packed bytes.
 #[derive(Clone, Debug)]
-pub enum Atom<'a> {
-    Block {
-        kind: AtomKind,
-        children: Vec<Atom<'a>>,
-    },
-    Reference(Box<Atom<'a>>),
-    Bytes(&'a [u8]),
+pub enum Atom {
+    Block { kind: AtomKind, num_children: u8 },
+    Reference(u64),
+    Bytes(Vec<u8>),
 }
 
-pub trait ToAtoms {
-    fn to_atom(&self) -> Result<Atom, ()>;
-    fn to_atom_internal(&self) -> Result<(Atom, usize), ()>;
+pub trait LengthInWords {
+    fn length_in_words(&self) -> usize;
 }
-impl ToAtoms for [u8] {
-    fn to_atom(&self) -> Result<Atom, ()> {
-        match self.to_atom_internal() {
-            Ok((child, _)) => Ok(child),
-            Err(_) => Err(()),
-        }
-    }
+impl LengthInWords for Atom {
+    fn length_in_words(&self) -> usize {
+        use Atom::*;
 
-    fn to_atom_internal<'a>(&'a self) -> Result<(Atom, usize), ()> {
-        match self.first().unwrap() {
-            0 => {
-                let num_children = *self.get(1).unwrap();
-                let kind = u64::clone_from_slice(&self[0..8]) & 0x00_00_ff_ff_ff_ff_ff_ff;
-
-                let mut children: Vec<Atom<'a>> = vec![];
-                let mut offset = 8;
-                for _ in 0..num_children {
-                    match (&self[offset..]).to_atom_internal() {
-                        Ok((child, length)) => {
-                            children.push(child);
-                            offset += length;
-                        }
-                        Err(()) => return Err(()),
-                    }
-                }
-
-                let atom = Atom::Block { kind, children };
-                Ok((atom, offset))
-            }
-            1 => {
-                let offset =
-                    (u64::clone_from_slice(&self[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff) as usize;
-                println!("Offset is {}", offset);
-                (&self[8 + offset..])
-                    .to_atom_internal()
-                    .map(|(child, _)| (Atom::Reference(Box::new(child)), 8))
-            }
-            2 => {
-                let length =
-                    (u64::clone_from_slice(&self[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff) as usize;
-                let payload_bytes = &self[8..(8 + length)];
-                // TODO: Check alignment bytes.
-
-                Ok((
-                    Atom::Bytes(payload_bytes),
-                    8 + length.round_up_to_multiple_of(8),
-                ))
-            }
-            _ => Err(()),
+        match self {
+            Block { .. } => 1,
+            Reference(_) => 1,
+            Bytes(bytes) => 1 + (bytes.len() + 1) / 8,
         }
     }
 }
 
-impl<'a> Atom<'a> {
+impl Atom {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
-            Atom::Block { kind, children } => {
+            Atom::Block { num_children, kind } => {
                 let mut bytes = vec![0];
-                bytes.push(u8::try_from(children.len()).unwrap());
+                bytes.push(*num_children);
                 bytes.extend_from_slice(&kind.to_be_bytes()[2..]);
-                for child in children {
-                    bytes.extend_from_slice(&child.to_bytes());
-                }
                 bytes
             }
-            Atom::Reference(child) => {
-                todo!("Implement serializing Reference atoms.");
+            Atom::Reference(offset) => {
                 let mut bytes = vec![1];
-                // TODO(marcelgarus): Don't place lazy block inline.
-                // bytes.extend_from_slice(&u64::try_from(*offset).unwrap().to_be_bytes()[1..]);
-                bytes.extend_from_slice(&[0u8; 7]);
-                bytes.extend_from_slice(&child.to_bytes());
+                bytes.extend_from_slice(&offset.to_be_bytes()[1..]);
                 bytes
             }
             Atom::Bytes(payload_bytes) => {
@@ -101,6 +50,27 @@ impl<'a> Atom<'a> {
                 bytes.align();
                 bytes
             }
+        }
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Atom, ()> {
+        match bytes.first().unwrap() {
+            0 => Ok(Atom::Block {
+                kind: u64::clone_from_slice(&bytes[0..8]) & 0x00_00_ff_ff_ff_ff_ff_ff,
+                num_children: *bytes.get(1).unwrap(),
+            }),
+            1 => {
+                let offset = u64::clone_from_slice(&bytes[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff;
+                Ok(Atom::Reference(offset))
+            }
+            2 => {
+                let length =
+                    (u64::clone_from_slice(&bytes[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff) as usize;
+                let payload_bytes = &bytes[8..(8 + length)];
+                // TODO(marcelgarus): Check alignment bytes.
+                Ok(Atom::Bytes(payload_bytes.to_vec()))
+            }
+            _ => Err(()),
         }
     }
 }
