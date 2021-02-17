@@ -1,34 +1,22 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+mod book;
 mod engine;
-use engine::atoms::Atom;
+
+use book::{Block::*, *};
+use engine::atoms::*;
 
 pub fn main() {
-    let doc = Atom::Block {
-        kind: vec![1, 1, 1],
-        children: vec![
-            Atom::Block {
-                kind: vec![2, 1, 1],
-                children: vec![Atom::Bytes(b"SemDoc".to_vec())],
-            },
-            Atom::Block {
-                kind: vec![1, 2, 1],
-                children: vec![
-                    Atom::Block {
-                        kind: vec![2, 1, 1],
-                        children: vec![Atom::Bytes(b"Hello, world!".to_vec())],
-                    },
-                    Atom::Block {
-                        kind: vec![2, 1, 1],
-                        children: vec![Atom::Bytes(b"This is a test.".to_vec())],
-                    },
-                ],
-            },
-        ],
+    let doc = Section {
+        title: Box::new(Text("SemDoc".to_string())),
+        body: Box::new(SplitSequence(vec![
+            Text("Hello, world!".to_string()),
+            Text("This is a test.".to_string()),
+        ])),
     };
-
-    let bytes = doc.to_bytes();
+    let atoms = doc.serialize();
+    let bytes = atoms.to_bytes();
 
     for chunk in bytes.chunks(8) {
         for i in 0..8 {
@@ -40,6 +28,8 @@ pub fn main() {
     let mut file = File::create("helloworld.sd").unwrap();
     file.write_all(&bytes).unwrap();
 
-    let retrieved_doc = Atom::from(&mut bytes.into_iter());
+    let retrieved_atoms = (&bytes[..]).to_atoms().unwrap();
+    println!("Retrieved atoms: {:?}", retrieved_atoms);
+    let retrieved_doc = retrieved_atoms.deserialize();
     println!("Retrieved doc: {:?}", retrieved_doc);
 }

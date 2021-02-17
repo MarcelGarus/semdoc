@@ -1,22 +1,72 @@
 use std::convert::TryFrom;
 
-pub type AtomKind = Vec<u8>;
+pub type AtomKind = u64;
 
-#[derive(Debug)]
-pub enum Atom {
-    Block { kind: AtomKind, children: Vec<Atom> },
-    Bytes(Vec<u8>),
+#[derive(Clone, Debug)]
+pub enum Atom<'a> {
+    Block {
+        kind: AtomKind,
+        children: Vec<Atom<'a>>,
+    },
+    Bytes(&'a [u8]),
 }
 
-impl Atom {
+pub trait ToAtoms {
+    fn to_atoms(&self) -> Result<Atom, ()>;
+    fn to_atoms_internal(&self) -> Result<(Atom, usize), ()>;
+}
+impl ToAtoms for [u8] {
+    fn to_atoms(&self) -> Result<Atom, ()> {
+        match self.to_atoms_internal() {
+            Ok((child, _)) => Ok(child),
+            Err(_) => Err(()),
+        }
+    }
+
+    fn to_atoms_internal<'a>(&'a self) -> Result<(Atom, usize), ()> {
+        match self.first().unwrap() {
+            0 => {
+                let num_children = *self.get(1).unwrap();
+                let kind = u64::clone_from_slice(&self[0..8]) & 0x00_00_ff_ff_ff_ff_ff_ff;
+
+                let mut children: Vec<Atom<'a>> = vec![];
+                let mut offset = 8;
+                for _ in 0..num_children {
+                    match (&self[offset..]).to_atoms_internal() {
+                        Ok((child, length)) => {
+                            children.push(child);
+                            offset += length;
+                        }
+                        Err(()) => return Err(()),
+                    }
+                }
+
+                let atom = Atom::Block { kind, children };
+                Ok((atom, offset))
+            }
+            1 => {
+                let length =
+                    (u64::clone_from_slice(&self[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff) as usize;
+                let payload_bytes = &self[8..(8 + length)];
+                // TODO: Check alignment bytes.
+
+                Ok((
+                    Atom::Bytes(payload_bytes),
+                    8 + length.round_up_to_multiple_of(8),
+                ))
+            }
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'a> Atom<'a> {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Atom::Block { kind, children } => {
                 let mut bytes = vec![0];
                 bytes.push(u8::try_from(children.len()).unwrap());
-                bytes.extend_from_slice(&kind);
-                bytes.push(0);
-                bytes.align();
+                bytes.extend_from_slice(&kind.to_be_bytes()[2..]);
                 for child in children {
                     let child_bytes = child.to_bytes();
                     bytes.extend_from_slice(&child_bytes);
@@ -33,60 +83,6 @@ impl Atom {
             }
         }
     }
-
-    pub fn from<T: Iterator<Item = u8>>(bytes: &mut T) -> Self {
-        match bytes.next().unwrap() {
-            0 => {
-                let mut counter = 1; // Counter used for alignment.
-
-                let num_children = bytes.next().unwrap();
-                counter += 1;
-
-                let mut kind = vec![];
-                loop {
-                    let byte = bytes.next().unwrap();
-                    counter += 1;
-                    if byte == 0 {
-                        break;
-                    }
-                    kind.push(byte);
-                }
-
-                let alignment_fill = 8 - counter % 8;
-                for _ in 0..alignment_fill {
-                    let byte = bytes.next().unwrap();
-                    if byte != 0 {
-                        panic!("Byte should be zero, but is {}", byte);
-                    }
-                }
-
-                let children = (0..num_children).map(|_| Atom::from(bytes)).collect();
-
-                Atom::Block { kind, children }
-            }
-            1 => {
-                let mut length: u64 = 0;
-                for _ in 0..7 {
-                    length <<= 8;
-                    let next_byte: u64 = bytes.next().unwrap().into();
-                    length |= next_byte;
-                }
-
-                let payload_bytes = (0..length).map(|_| bytes.next().unwrap()).collect();
-
-                let alignment_fill = 8 - length % 8;
-                for _ in 0..alignment_fill {
-                    let byte = bytes.next().unwrap();
-                    if byte != 0 {
-                        panic!("Byte should be zero, but is {}.", byte);
-                    }
-                }
-
-                Atom::Bytes(payload_bytes)
-            }
-            kind => panic!("Unknown kind {}.", kind),
-        }
-    }
 }
 
 trait Align {
@@ -99,5 +95,27 @@ impl Align for Vec<u8> {
         for _ in 0..filling_amount {
             self.push(0);
         }
+    }
+}
+
+trait CloneFromSlice {
+    fn clone_from_slice(bytes: &[u8]) -> Self;
+}
+impl CloneFromSlice for u64 {
+    fn clone_from_slice(bytes: &[u8]) -> Self {
+        assert_eq!(bytes.len(), 8);
+        let mut tmp = [0u8; 8];
+        tmp.clone_from_slice(&bytes);
+        u64::from_be_bytes(tmp)
+    }
+}
+
+trait RoundUpToMultipleOf {
+    fn round_up_to_multiple_of(&self, number: Self) -> Self;
+}
+impl RoundUpToMultipleOf for usize {
+    fn round_up_to_multiple_of(&self, number: Self) -> Self {
+        let filling = number - self % number;
+        self + filling
     }
 }
