@@ -27,26 +27,26 @@ impl Flatten for Block {
             Empty => vec![FlatBlock::Empty],
             Text(text) => vec![FlatBlock::Text(text.clone())],
             Section { title, body } => {
-                let title = title.flatten(next_id + 1);
-                let body = body.flatten(next_id + 1 + title.len());
+                let mut title = title.flatten(next_id + 1);
+                let mut body = body.flatten(next_id + 1 + title.len());
                 let mut flat_blocks = vec![FlatBlock::Section {
                     title: next_id + 1,
                     body: next_id + 1 + title.len(),
                 }];
-                flat_blocks.append(&mut title.clone());
-                flat_blocks.append(&mut body.clone());
+                flat_blocks.append(&mut title);
+                flat_blocks.append(&mut body);
                 flat_blocks
             }
             DenseSequence(items) => {
-                let (items, blocks) = items.flatten_all(next_id + 1);
+                let (items, mut blocks) = items.flatten_all(next_id + 1);
                 let mut flat_blocks = vec![FlatBlock::DenseSequence(items)];
-                flat_blocks.append(&mut blocks.clone());
+                flat_blocks.append(&mut blocks);
                 flat_blocks
             }
             SplitSequence(items) => {
-                let (items, blocks) = items.flatten_all(next_id + 1);
+                let (items, mut blocks) = items.flatten_all(next_id + 1);
                 let mut flat_blocks = vec![FlatBlock::SplitSequence(items)];
-                flat_blocks.append(&mut blocks.clone());
+                flat_blocks.append(&mut blocks);
                 flat_blocks
             }
         }

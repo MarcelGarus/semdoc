@@ -21,7 +21,10 @@ impl Lowering for FlatBlock {
 
         // TODO(marcelgarus): Factor the branches out into functions defined below.
         match self {
-            Unknown { kind } => todo!("Can't turn FlatBlock::Unknown into Molecules."),
+            Unknown { kind } => todo!(
+                "Can't turn FlatBlock::Unknown into Molecules (kind was {:?}).",
+                kind
+            ),
             Empty => Molecule {
                 kind: 0,
                 data: vec![],
