@@ -22,7 +22,7 @@ impl LengthInWords for Atom {
         match self {
             Block { .. } => 1,
             Reference(_) => 1,
-            Bytes(bytes) => 1 + (bytes.len() + 1) / 8,
+            Bytes(bytes) => 1 + (bytes.len().round_up_to_multiple_of(8)) / 8,
         }
     }
 }

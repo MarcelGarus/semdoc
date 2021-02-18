@@ -5,7 +5,7 @@ mod atoms;
 mod blocks;
 mod doc;
 mod flatten;
-mod lowering;
+mod molecules;
 mod scheduler;
 mod utils;
 
