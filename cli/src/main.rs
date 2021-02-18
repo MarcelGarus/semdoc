@@ -1,6 +1,8 @@
 use clap::{App, AppSettings, Arg, SubCommand};
 use semdoc_engine::atoms::*;
 
+mod inspect_bytes;
+
 fn main() {
     let matches = App::new("SemDoc")
         .version("0.1.0")
@@ -29,7 +31,7 @@ fn main() {
 
     if let Some(ref matches) = matches.subcommand_matches("inspect") {
         if matches.subcommand_matches("bytes").is_some() {
-            inspect_bytes(&file);
+            inspect_bytes::inspect_bytes(&file);
         }
         if matches.subcommand_matches("atoms").is_some() {
             inspect_atoms(&file);
@@ -40,33 +42,9 @@ fn main() {
     }
 }
 
-fn inspect_bytes(file: &str) {
-    let bytes = std::fs::read(file).expect("File not found.");
-    let atoms = (&bytes[..]).to_atom().expect("File corrupted.");
-    for (index, chunk) in bytes.chunks(8).enumerate() {
-        print!("{:3} |", index);
-        for i in 0..8 {
-            print!(" {:02x}", chunk.get(i).unwrap());
-        }
-        print!(" | ");
-        for i in 0..8 {
-            let byte = chunk.get(i).unwrap();
-            print!(
-                "{}",
-                if (32..=126).contains(byte) {
-                    *byte as char
-                } else {
-                    '.'
-                }
-            );
-        }
-        println!();
-    }
-}
-
 fn inspect_atoms(file: &str) {
     let bytes = std::fs::read(file).expect("File not found.");
-    let atoms = (&bytes[..]).to_atom().expect("File corrupted.");
+    let atoms = (&bytes[..]).parse_atoms().expect("File corrupted.");
 
     println!("Atoms: {:?}", atoms);
 }

@@ -70,7 +70,7 @@ impl Atom {
                 // TODO(marcelgarus): Check alignment bytes.
                 Ok(Atom::Bytes(payload_bytes.to_vec()))
             }
-            _ => Err(()),
+            kind => todo!("Unknown atom kind {:02x}. Bytes: {:?}", kind, bytes),
         }
     }
 }

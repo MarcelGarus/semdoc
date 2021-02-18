@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 clap = "2"
+colored = "2"
 semdoc_engine = { path = "../engine" }
