@@ -8,3 +8,4 @@ edition = "2018"
 clap = "2"
 colored = "2"
 semdoc_engine = { path = "../engine" }
+markdown_to_semdoc = { path = "../convert/markdown-to-semdoc" }

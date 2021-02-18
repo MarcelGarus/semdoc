@@ -1,5 +1,7 @@
 use clap::{App, AppSettings, Arg, SubCommand};
 use semdoc_engine::atoms::*;
+use std::fs::File;
+use std::io::prelude::*;
 
 mod inspect_bytes;
 
@@ -24,6 +26,7 @@ fn main() {
                         .about("Inspects the blocks of the SemDoc file."),
                 ),
         )
+        .subcommand(SubCommand::with_name("eat"))
         .get_matches();
 
     let file = matches.value_of("file").unwrap();
@@ -40,6 +43,9 @@ fn main() {
             inspect_blocks(&file);
         }
     }
+    if let Some(ref matches) = matches.subcommand_matches("eat") {
+        eat(file)
+    }
 }
 
 fn inspect_atoms(file: &str) {
@@ -50,3 +56,12 @@ fn inspect_atoms(file: &str) {
 }
 
 fn inspect_blocks(file: &str) {}
+
+fn eat(file: &str) {
+    let content = std::fs::read_to_string(file).expect("File not found.");
+    let doc = markdown_to_semdoc::markdown_to_semdoc(&content);
+    println!("Doc: {:?}", doc);
+
+    let mut file = File::create("converted.sd").unwrap();
+    file.write_all(&doc.to_bytes()).unwrap();
+}
