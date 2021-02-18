@@ -109,9 +109,9 @@ pub fn inspect_bytes(file: &str) {
     let mut children_left = vec![]; // How many children are left in each indentation level.
 
     println!(
-        "{:4} | {:23} | {:8} | {}",
+        "{:4}  {:23}  {:8}  {}",
         "Word".bold(),
-        "Byte".bold(),
+        "Bytes".bold(),
         "ASCII".bold(),
         "Info".bold(),
     );
@@ -119,7 +119,7 @@ pub fn inspect_bytes(file: &str) {
         let info = &info[index];
 
         println!(
-            "{} | {} | {} | {}{}",
+            "{}  {}  {}  {}{}",
             stringify_word_index(index),
             stringify_bytes(word, info),
             stringify_bytes_ascii(word, info),
@@ -212,8 +212,8 @@ fn stringify_info(info: &WordInfo) -> String {
         }
         WordInfo::Block { kind, num_children } => format!(
             "{}{}{}",
-            "Block".color(colors::atom_kind).bold(),
-            format!(", kind {}, ", kind).color(colors::kind),
+            "Block, ".color(colors::atom_kind).bold(),
+            format!("kind {}, ", kind).color(colors::kind),
             format!(
                 "{} {}",
                 num_children,
@@ -226,20 +226,20 @@ fn stringify_info(info: &WordInfo) -> String {
         ),
         WordInfo::Bytes { length } => format!(
             "{}{}",
-            "Bytes".color(colors::atom_kind).bold(),
-            format!(", {} long", length).color(colors::length),
+            "Bytes, ".color(colors::atom_kind).bold(),
+            format!("{} long", length).color(colors::length),
         ),
         WordInfo::FewBytes { length } => format!(
             "{}{}",
-            "FewBytes".color(colors::atom_kind).bold(),
-            format!(", {} long", length).color(colors::length),
+            "FewBytes, ".color(colors::atom_kind).bold(),
+            format!("{} long", length).color(colors::length),
         ),
         WordInfo::BytesContinuation { num_relevant, .. } => format!(
             "{}{}",
             "Payload".color(colors::payload),
             match num_relevant {
                 8 => "".to_owned(),
-                _ => ", padding".color(colors::padding).to_string(),
+                _ => " + padding".color(colors::padding).to_string(),
             }
         ),
     }
