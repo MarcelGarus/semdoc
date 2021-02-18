@@ -1,9 +1,13 @@
-use super::blocks::Block;
+use std::convert::TryInto;
+
 use super::blocks::*;
 use super::flatten::*;
 use super::molecules::*;
 use super::scheduler::*;
 use crate::atoms::*;
+
+const MAGIC_BYTES: &[u8] = b"SemDoc";
+const VERSION: u16 = 0;
 
 #[derive(Debug)]
 pub struct SemDoc {
@@ -15,20 +19,29 @@ impl SemDoc {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        self.block
-            .flatten(0)
-            .iter()
-            .map(|block| block.lower())
-            .collect::<Vec<_>>()
-            .schedule()
-            .iter()
-            .map(|atom| atom.to_bytes())
-            .flatten()
-            .collect()
+        let mut bytes = vec![];
+        bytes.extend_from_slice(MAGIC_BYTES);
+        bytes.extend_from_slice(&VERSION.to_be_bytes());
+        bytes.extend_from_slice(
+            &self
+                .block
+                .flatten(0)
+                .iter()
+                .map(|block| block.lower())
+                .collect::<Vec<_>>()
+                .schedule()
+                .iter()
+                .map(|atom| atom.to_bytes())
+                .flatten()
+                .collect::<Vec<_>>(),
+        );
+        bytes
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, ()> {
-        let block = bytes
+        assert!(bytes.starts_with(MAGIC_BYTES));
+        assert_eq!(u16::from_be_bytes(bytes[6..8].try_into().unwrap()), VERSION);
+        let block = bytes[8..]
             .parse_atoms()
             .unwrap()
             .parse_molecules()
