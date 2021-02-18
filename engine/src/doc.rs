@@ -28,20 +28,15 @@ impl SemDoc {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, ()> {
-        let atoms = {
-            let mut atoms = vec![];
-            let mut cursor = 0;
-            while cursor < bytes.len() {
-                let atom = Atom::from_bytes(&bytes[cursor..]).unwrap();
-                cursor += 8 * atom.length_in_words();
-                atoms.push(atom);
-            }
-            atoms
-        };
-        let molecules = atoms.parse_molecules().unwrap();
-        let flat_blocks: Vec<_> = molecules.iter().map(|molecule| molecule.higher()).collect();
-        let block = flat_blocks.unflatten();
-
+        let block = bytes
+            .parse_atoms()
+            .unwrap()
+            .parse_molecules()
+            .unwrap()
+            .iter()
+            .map(|molecule| molecule.higher())
+            .collect::<Vec<_>>()
+            .unflatten();
         Ok(Self { block })
     }
 }

@@ -74,3 +74,19 @@ impl Atom {
         }
     }
 }
+
+pub trait ParseAtoms {
+    fn parse_atoms(&self) -> Result<Vec<Atom>, ()>;
+}
+impl ParseAtoms for [u8] {
+    fn parse_atoms(&self) -> Result<Vec<Atom>, ()> {
+        let mut atoms = vec![];
+        let mut cursor = 0;
+        while cursor < self.len() {
+            let atom = Atom::from_bytes(&self[cursor..]).unwrap();
+            cursor += 8 * atom.length_in_words();
+            atoms.push(atom);
+        }
+        Ok(atoms)
+    }
+}
