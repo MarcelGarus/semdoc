@@ -10,6 +10,7 @@ pub enum Atom {
     Block { kind: AtomKind, num_children: u8 },
     Reference(u64),
     Bytes(Vec<u8>),
+    FewBytes(Vec<u8>),
 }
 
 pub trait LengthInWords {
@@ -22,7 +23,8 @@ impl LengthInWords for Atom {
         match self {
             Block { .. } => 1,
             Reference(_) => 1,
-            Bytes(bytes) => 1 + (bytes.len().round_up_to_multiple_of(8)) / 8,
+            Bytes(bytes) => 1 + bytes.len().round_up_to_multiple_of(8) / 8,
+            FewBytes(bytes) => 1 + (bytes.len() - 6).round_up_to_multiple_of(8) / 8,
         }
     }
 }
@@ -50,6 +52,14 @@ impl Atom {
                 bytes.align();
                 bytes
             }
+            Atom::FewBytes(payload_bytes) => {
+                let mut bytes = vec![3];
+                bytes.push(payload_bytes.len() as u8);
+                bytes.extend_from_slice(&payload_bytes);
+                println!("Byte length is {}", bytes.len());
+                bytes.align();
+                bytes
+            }
         }
     }
 
@@ -70,6 +80,12 @@ impl Atom {
                 // TODO(marcelgarus): Check alignment bytes.
                 Ok(Atom::Bytes(payload_bytes.to_vec()))
             }
+            3 => {
+                let length = bytes[1] as usize;
+                let payload_bytes = &bytes[2..(2 + length)];
+                // TODO(marcelgarus): Check alignment bytes.
+                Ok(Atom::FewBytes(payload_bytes.to_vec()))
+            }
             kind => todo!("Unknown atom kind {:02x}. Bytes: {:?}", kind, bytes),
         }
     }
@@ -84,6 +100,7 @@ impl ParseAtoms for [u8] {
         let mut cursor = 0;
         while cursor < self.len() {
             let atom = Atom::from_bytes(&self[cursor..]).unwrap();
+            println!("Parsed {:?} Length is {}", atom, atom.length_in_words());
             cursor += 8 * atom.length_in_words();
             atoms.push(atom);
         }

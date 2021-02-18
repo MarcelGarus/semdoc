@@ -44,6 +44,12 @@ impl SemDoc {
         let block = bytes[8..]
             .parse_atoms()
             .unwrap()
+            // .into_iter()
+            // .map(|it| {
+            //     println!("{:?}", it);
+            //     it
+            // })
+            // .collect::<Vec<_>>()
             .parse_molecules()
             .unwrap()
             .iter()

@@ -26,6 +26,9 @@ impl MoleculeData {
     }
 }
 
+// Note: There serialization from `Molecule`s to `Atom` is slightly more
+// complex, so it lives in its own module, the scheduler.
+
 pub trait MoleculesFromAtoms {
     fn parse_molecules(&self) -> Result<Vec<Molecule>, ()>;
 }
@@ -59,6 +62,7 @@ fn molecule_from_atoms(
         }
         // TODO(marcelgarus): Reference.
         Atom::Bytes(bytes) => Ok((MoleculeData::Bytes(bytes.clone()), 1)),
+        Atom::FewBytes(bytes) => Ok((MoleculeData::Bytes(bytes.clone()), 1)),
         _ => Err(()),
     }
 }

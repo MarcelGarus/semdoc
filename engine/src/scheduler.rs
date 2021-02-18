@@ -24,7 +24,13 @@ impl SchedulerInternal for Vec<Molecule> {
         for data in &block.data {
             match data {
                 MoleculeData::Block(id) => self._schedule(*id, output),
-                MoleculeData::Bytes(bytes) => output.push(Atom::Bytes(bytes.clone())),
+                MoleculeData::Bytes(bytes) => {
+                    if bytes.len() < 256 {
+                        output.push(Atom::FewBytes(bytes.clone()));
+                    } else {
+                        output.push(Atom::Bytes(bytes.clone()));
+                    }
+                }
             }
         }
     }

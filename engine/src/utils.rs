@@ -4,7 +4,7 @@ pub trait Align {
 impl Align for Vec<u8> {
     fn align(&mut self) {
         let length = self.len();
-        let filling_amount = 8 - length % 8;
+        let filling_amount = length.round_up_to_multiple_of(8) - length;
         for _ in 0..filling_amount {
             self.push(0);
         }
@@ -28,7 +28,6 @@ pub trait RoundUpToMultipleOf {
 }
 impl RoundUpToMultipleOf for usize {
     fn round_up_to_multiple_of(&self, number: Self) -> Self {
-        let filling = number - self % number;
-        self + filling
+        self + (number - self % number) % number
     }
 }
