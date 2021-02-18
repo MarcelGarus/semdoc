@@ -62,14 +62,14 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
 mod colors {
     use super::Color;
 
-    pub const magic: Color = Color::BrightMagenta;
-    pub const version: Color = Color::Yellow;
-    pub const atom_kind: Color = Color::Yellow;
-    pub const num_children: Color = Color::BrightRed;
-    pub const kind: Color = Color::Green;
-    pub const length: Color = Color::BrightRed;
-    pub const payload: Color = Color::BrightCyan;
-    pub const padding: Color = Color::Blue;
+    pub const MAGIC: Color = Color::BrightMagenta;
+    pub const VERSION: Color = Color::Yellow;
+    pub const ATOM_KIND: Color = Color::Yellow;
+    pub const NUM_CHILDREN: Color = Color::BrightRed;
+    pub const KIND: Color = Color::Green;
+    pub const LENGTH: Color = Color::BrightRed;
+    pub const PAYLOAD: Color = Color::BrightCyan;
+    pub const PADDING: Color = Color::Blue;
 }
 
 impl WordInfo {
@@ -77,24 +77,24 @@ impl WordInfo {
         use colors::*;
         let w = Color::White;
         match self {
-            WordInfo::Header { .. } => [magic, magic, magic, magic, magic, magic, version, version],
-            WordInfo::Block { .. } => [atom_kind, num_children, kind, kind, kind, kind, kind, kind],
+            WordInfo::Header { .. } => [MAGIC, MAGIC, MAGIC, MAGIC, MAGIC, MAGIC, VERSION, VERSION],
+            WordInfo::Block { .. } => [ATOM_KIND, NUM_CHILDREN, KIND, KIND, KIND, KIND, KIND, KIND],
             WordInfo::Bytes { .. } => [
-                atom_kind, length, length, length, length, length, length, length,
+                ATOM_KIND, LENGTH, LENGTH, LENGTH, LENGTH, LENGTH, LENGTH, LENGTH,
             ],
             WordInfo::FewBytes { length: len } => {
-                let mut colors = [padding; 8];
+                let mut colors = [PADDING; 8];
                 for i in 0..min(2 + *len as usize, 8) {
-                    colors[i] = payload;
+                    colors[i] = PAYLOAD;
                 }
-                colors[0] = atom_kind;
-                colors[1] = length;
+                colors[0] = ATOM_KIND;
+                colors[1] = LENGTH;
                 colors
             }
             WordInfo::BytesContinuation { num_relevant, .. } => {
-                let mut colors = [padding; 8];
+                let mut colors = [PADDING; 8];
                 for i in 0..(*num_relevant as usize) {
-                    colors[i] = payload;
+                    colors[i] = PAYLOAD;
                 }
                 colors
             }
@@ -206,14 +206,14 @@ fn stringify_info(info: &WordInfo) -> String {
         WordInfo::Header { version } => {
             format!(
                 "Header with {}{}",
-                "magic bytes, ".color(colors::magic),
-                format!("SemDoc version {}", version).color(colors::version),
+                "magic bytes, ".color(colors::MAGIC),
+                format!("SemDoc version {}", version).color(colors::VERSION),
             )
         }
         WordInfo::Block { kind, num_children } => format!(
             "{}{}{}",
-            "Block, ".color(colors::atom_kind).bold(),
-            format!("kind {}, ", kind).color(colors::kind),
+            "Block, ".color(colors::ATOM_KIND).bold(),
+            format!("kind {}, ", kind).color(colors::KIND),
             format!(
                 "{} {}",
                 num_children,
@@ -222,24 +222,24 @@ fn stringify_info(info: &WordInfo) -> String {
                     _ => "children",
                 }
             )
-            .color(colors::num_children),
+            .color(colors::NUM_CHILDREN),
         ),
         WordInfo::Bytes { length } => format!(
             "{}{}",
-            "Bytes, ".color(colors::atom_kind).bold(),
-            format!("{} long", length).color(colors::length),
+            "Bytes, ".color(colors::ATOM_KIND).bold(),
+            format!("{} bytes long", length).color(colors::LENGTH),
         ),
         WordInfo::FewBytes { length } => format!(
             "{}{}",
-            "FewBytes, ".color(colors::atom_kind).bold(),
-            format!("{} long", length).color(colors::length),
+            "FewBytes, ".color(colors::ATOM_KIND).bold(),
+            format!("{} bytes long", length).color(colors::LENGTH),
         ),
         WordInfo::BytesContinuation { num_relevant, .. } => format!(
             "{}{}",
-            "Payload".color(colors::payload),
+            "Payload".color(colors::PAYLOAD),
             match num_relevant {
                 8 => "".to_owned(),
-                _ => " + padding".color(colors::padding).to_string(),
+                _ => " + padding".color(colors::PADDING).to_string(),
             }
         ),
     }
