@@ -1,0 +1,9 @@
+[package]
+name = "markdown_to_semdoc"
+version = "0.0.1"
+authors = ["Marcel Garus <marcel.garus@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+pulldown-cmark = "0.8"
+semdoc_engine = { path = "../../engine" }
