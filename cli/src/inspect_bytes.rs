@@ -52,7 +52,11 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
                 info.push(WordInfo::FewBytes {
                     length: bytes.len() as u8,
                 });
-                add_byte_continuations(bytes.len() - 6, &mut info); // 6 bytes are already stored right here.
+                add_byte_continuations(
+                    // Up to 6 bytes are already stored right here.
+                    if bytes.len() < 6 { 0 } else { bytes.len() - 6 },
+                    &mut info,
+                );
             }
         };
     }
@@ -75,7 +79,6 @@ mod colors {
 impl WordInfo {
     fn to_byte_styles(&self) -> [Color; 8] {
         use colors::*;
-        let w = Color::White;
         match self {
             WordInfo::Header { .. } => [MAGIC, MAGIC, MAGIC, MAGIC, MAGIC, MAGIC, VERSION, VERSION],
             WordInfo::Block { .. } => [ATOM_KIND, NUM_CHILDREN, KIND, KIND, KIND, KIND, KIND, KIND],
@@ -98,7 +101,6 @@ impl WordInfo {
                 }
                 colors
             }
-            _ => [w, w, w, w, w, w, w, w],
         }
     }
 }

@@ -2,7 +2,7 @@ use crate::flatten::*;
 use crate::molecules::*;
 
 // TODO(marcelgarus): Document.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Block {
     Unknown { kind: u64 },
     Empty,

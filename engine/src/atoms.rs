@@ -24,7 +24,10 @@ impl LengthInWords for Atom {
             Block { .. } => 1,
             Reference(_) => 1,
             Bytes(bytes) => 1 + bytes.len().round_up_to_multiple_of(8) / 8,
-            FewBytes(bytes) => 1 + (bytes.len() - 6).round_up_to_multiple_of(8) / 8,
+            FewBytes(bytes) => {
+                1 + (if bytes.len() < 6 { 0 } else { bytes.len() - 6 }).round_up_to_multiple_of(8)
+                    / 8
+            }
         }
     }
 }
@@ -56,7 +59,6 @@ impl Atom {
                 let mut bytes = vec![3];
                 bytes.push(payload_bytes.len() as u8);
                 bytes.extend_from_slice(&payload_bytes);
-                println!("Byte length is {}", bytes.len());
                 bytes.align();
                 bytes
             }
