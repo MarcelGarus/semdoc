@@ -4,7 +4,6 @@ use std::io::prelude::*;
 mod atoms;
 mod blocks;
 mod doc;
-mod flatten;
 mod molecules;
 mod scheduler;
 mod utils;

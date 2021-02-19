@@ -1,5 +1,5 @@
-use crate::flatten::*;
-use crate::molecules::*;
+use crate::molecules;
+use crate::molecules::Molecule;
 
 // TODO(marcelgarus): Document.
 #[derive(Debug, Clone)]
@@ -18,14 +18,15 @@ pub enum Block {
 pub trait Lowering {
     fn lower(&self) -> Molecule;
 }
-impl Lowering for FlatBlock {
+impl Lowering for Block {
     fn lower(&self) -> Molecule {
-        use FlatBlock::*;
+        use super::blocks::Block::*;
+        use molecules::Data::*;
 
         // TODO(marcelgarus): Factor the branches out into functions defined below.
         match self {
             Unknown { kind } => todo!(
-                "Can't turn FlatBlock::Unknown into Molecules (kind was {:?}).",
+                "Can't turn Block::Unknown into Molecules (kind was {:?}).",
                 kind
             ),
             Empty => Molecule {
@@ -34,11 +35,11 @@ impl Lowering for FlatBlock {
             },
             Text(text) => Molecule {
                 kind: 1,
-                data: vec![MoleculeData::Bytes(text.as_bytes().to_vec())],
+                data: vec![Bytes(text.as_bytes().to_vec())],
             },
             Section { title, body } => Molecule {
                 kind: 2,
-                data: vec![MoleculeData::Block(*title), MoleculeData::Block(*body)],
+                data: vec![Block(title.lower()), Block(body.lower())],
             },
             DenseSequence(items) => Molecule {
                 kind: 3,
@@ -51,41 +52,45 @@ impl Lowering for FlatBlock {
         }
     }
 }
-trait IdVecToData {
-    fn lower(&self) -> Vec<MoleculeData>;
+trait BlocksLowering {
+    fn lower(&self) -> Vec<molecules::Data>;
 }
-impl IdVecToData for Vec<Id> {
-    fn lower(&self) -> Vec<MoleculeData> {
+impl BlocksLowering for [Block] {
+    fn lower(&self) -> Vec<molecules::Data> {
         self.iter()
-            .map(|child| MoleculeData::Block(*child))
+            .map(|child| molecules::Data::Block(child.lower()))
             .collect()
     }
 }
 
 pub trait Highering {
-    fn higher(&self) -> FlatBlock;
+    fn higher(&self) -> Block;
 }
 impl Highering for Molecule {
-    fn higher(&self) -> FlatBlock {
+    fn higher(&self) -> Block {
+        use Block::*;
+
         // TODO(marcelgarus): Factor the branches out into functions defined below.
         match self.kind {
-            0 => FlatBlock::Empty,
-            1 => FlatBlock::Text(
-                String::from_utf8(self.data.first().unwrap().bytes().unwrap()).unwrap(),
-            ),
-            2 => FlatBlock::Section {
-                title: self.data.get(0).unwrap().block().unwrap(),
-                body: self.data.get(1).unwrap().block().unwrap(),
+            0 => Empty,
+            1 => Text(String::from_utf8(self.data.first().unwrap().bytes().unwrap()).unwrap()),
+            2 => Section {
+                title: Box::new(self.data.get(0).unwrap().block().unwrap().higher()),
+                body: Box::new(self.data.get(1).unwrap().block().unwrap().higher()),
             },
-            3 => FlatBlock::DenseSequence(
-                self.data.iter().map(|data| data.block().unwrap()).collect(),
+            3 => DenseSequence(
+                self.data
+                    .iter()
+                    .map(|data| data.block().unwrap().higher())
+                    .collect(),
             ),
-            4 => FlatBlock::SplitSequence(
-                self.data.iter().map(|data| data.block().unwrap()).collect(),
+            4 => SplitSequence(
+                self.data
+                    .iter()
+                    .map(|data| data.block().unwrap().higher())
+                    .collect(),
             ),
-            _ => FlatBlock::Unknown { kind: self.kind },
+            _ => Unknown { kind: self.kind },
         }
     }
 }
-
-// fn serialize_unknown(kind: usz)

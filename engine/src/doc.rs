@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use super::blocks::*;
-use super::flatten::*;
 use super::molecules::*;
 use super::scheduler::*;
 use crate::atoms::*;
@@ -25,10 +24,7 @@ impl SemDoc {
         bytes.extend_from_slice(
             &self
                 .block
-                .flatten(0)
-                .iter()
-                .map(|block| block.lower())
-                .collect::<Vec<_>>()
+                .lower()
                 .schedule()
                 .iter()
                 .map(|atom| atom.to_bytes())
@@ -50,12 +46,9 @@ impl SemDoc {
             //     it
             // })
             // .collect::<Vec<_>>()
-            .parse_molecules()
+            .parse_molecule()
             .unwrap()
-            .iter()
-            .map(|molecule| molecule.higher())
-            .collect::<Vec<_>>()
-            .unflatten();
+            .higher();
         Ok(Self { block })
     }
 }

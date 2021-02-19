@@ -1,26 +1,25 @@
 use super::atoms::*;
-use super::flatten::*;
 
 #[derive(Debug, Clone)]
 pub struct Molecule {
     pub kind: u64,
-    pub data: Vec<MoleculeData>,
+    pub data: Vec<Data>,
 }
 #[derive(Debug, Clone)]
-pub enum MoleculeData {
-    Block(Id),
+pub enum Data {
+    Block(Molecule),
     Bytes(Vec<u8>),
 }
-impl MoleculeData {
-    pub fn block(&self) -> Option<Id> {
+impl Data {
+    pub fn block(&self) -> Option<Molecule> {
         match self {
-            MoleculeData::Block(id) => Some(*id),
+            Data::Block(molecule) => Some(molecule.clone()),
             _ => None,
         }
     }
     pub fn bytes(&self) -> Option<Vec<u8>> {
         match self {
-            MoleculeData::Bytes(bytes) => Some(bytes.clone()),
+            Data::Bytes(bytes) => Some(bytes.clone()),
             _ => None,
         }
     }
@@ -29,40 +28,41 @@ impl MoleculeData {
 // Note: There serialization from `Molecule`s to `Atom` is slightly more
 // complex, so it lives in its own module, the scheduler.
 
-pub trait MoleculesFromAtoms {
-    fn parse_molecules(&self) -> Result<Vec<Molecule>, ()>;
+pub trait MoleculeFromAtoms {
+    fn parse_molecule(&self) -> Result<Molecule, ()>;
 }
-impl MoleculesFromAtoms for Vec<Atom> {
-    fn parse_molecules(&self) -> Result<Vec<Molecule>, ()> {
-        let mut molecules = vec![];
-        molecule_from_atoms(&self, &mut molecules).unwrap();
+impl MoleculeFromAtoms for [Atom] {
+    fn parse_molecule(&self) -> Result<Molecule, ()> {
         // TODO(marcelgarus): Make sure all atoms were consumed?
-        Ok(molecules)
+        Ok(self.parse_data().unwrap().0.block().unwrap())
     }
 }
-fn molecule_from_atoms(
-    atoms: &[Atom],
-    output: &mut Vec<Molecule>,
-) -> Result<(MoleculeData, usize), ()> {
-    match atoms.first().unwrap() {
-        Atom::Block { kind, num_children } => {
-            let id = output.len();
-            output.push(Molecule {
-                kind: *kind,
-                data: vec![],
-            });
-            let mut cursor = 1;
-
-            for _ in 0..*num_children {
-                let (data, consumed_atoms) = molecule_from_atoms(&atoms[cursor..], output).unwrap();
-                output[id].data.push(data);
-                cursor += consumed_atoms;
+trait MoleculeDataFromAtoms {
+    fn parse_data(&self) -> Result<(Data, usize), ()>;
+}
+impl MoleculeDataFromAtoms for [Atom] {
+    fn parse_data(&self) -> Result<(Data, usize), ()> {
+        match self.first().unwrap() {
+            Atom::Block { kind, num_children } => {
+                let mut children = vec![];
+                let mut cursor = 1;
+                for _ in 0..*num_children {
+                    let (data, consumed_atoms) = self[cursor..].parse_data().unwrap();
+                    children.push(data);
+                    cursor += consumed_atoms;
+                }
+                Ok((
+                    Data::Block(Molecule {
+                        kind: *kind,
+                        data: children,
+                    }),
+                    cursor,
+                ))
             }
-            Ok((MoleculeData::Block(id), cursor))
+            // TODO(marcelgarus): Reference.
+            Atom::Bytes(bytes) => Ok((Data::Bytes(bytes.clone()), 1)),
+            Atom::FewBytes(bytes) => Ok((Data::Bytes(bytes.clone()), 1)),
+            _ => Err(()),
         }
-        // TODO(marcelgarus): Reference.
-        Atom::Bytes(bytes) => Ok((MoleculeData::Bytes(bytes.clone()), 1)),
-        Atom::FewBytes(bytes) => Ok((MoleculeData::Bytes(bytes.clone()), 1)),
-        _ => Err(()),
     }
 }
