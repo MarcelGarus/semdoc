@@ -11,7 +11,7 @@ const VERSION: u16 = 0;
 
 #[derive(Debug)]
 pub struct SemDoc {
-    block: Block,
+    pub block: Block,
 }
 impl SemDoc {
     pub fn new(block: Block) -> Self {

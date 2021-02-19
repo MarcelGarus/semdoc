@@ -4,7 +4,10 @@ use crate::molecules::*;
 // TODO(marcelgarus): Document.
 #[derive(Debug, Clone)]
 pub enum Block {
+    // Special.
     Unknown { kind: u64 },
+
+    // Content.
     Empty,
     Text(String),
     Section { title: Box<Block>, body: Box<Block> },

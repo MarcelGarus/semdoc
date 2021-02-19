@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 mod inspect_atoms;
+mod inspect_blocks;
 mod inspect_bytes;
 mod utils;
 
@@ -41,7 +42,7 @@ fn main() {
             inspect_atoms::inspect_atoms(&file);
         }
         if matches.subcommand_matches("blocks").is_some() {
-            inspect_blocks(&file);
+            inspect_blocks::inspect_blocks(&file);
         }
     }
     if matches.subcommand_matches("eat").is_some() {
@@ -49,13 +50,11 @@ fn main() {
     }
 }
 
-fn inspect_blocks(file: &str) {}
-
 fn eat(file: &str) {
     let content = std::fs::read_to_string(file).expect("File not found.");
     let doc = markdown_to_semdoc::markdown_to_semdoc(&content);
-    println!("Doc: {:?}", doc);
 
     let mut file = File::create("converted.sd").unwrap();
     file.write_all(&doc.to_bytes()).unwrap();
+    inspect_blocks::inspect_blocks("converted.sd");
 }
