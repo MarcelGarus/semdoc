@@ -3,7 +3,9 @@ use semdoc_engine::atoms::*;
 use std::fs::File;
 use std::io::prelude::*;
 
+mod inspect_atoms;
 mod inspect_bytes;
+mod utils;
 
 fn main() {
     let matches = App::new("SemDoc")
@@ -37,7 +39,7 @@ fn main() {
             inspect_bytes::inspect_bytes(&file);
         }
         if matches.subcommand_matches("atoms").is_some() {
-            inspect_atoms(&file);
+            inspect_atoms::inspect_atoms(&file);
         }
         if matches.subcommand_matches("blocks").is_some() {
             inspect_blocks(&file);
@@ -46,13 +48,6 @@ fn main() {
     if let Some(ref matches) = matches.subcommand_matches("eat") {
         eat(file)
     }
-}
-
-fn inspect_atoms(file: &str) {
-    let bytes = std::fs::read(file).expect("File not found.");
-    let atoms = (&bytes[..]).parse_atoms().expect("File corrupted.");
-
-    println!("Atoms: {:?}", atoms);
 }
 
 fn inspect_blocks(file: &str) {}
