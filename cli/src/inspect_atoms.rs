@@ -1,7 +1,6 @@
-use colored::{Color, Colorize};
+use colored::Colorize;
 use semdoc_engine::atoms::*;
 use semdoc_engine::flatten::Id;
-use semdoc_engine::utils::*;
 
 use crate::utils::*;
 
@@ -49,7 +48,7 @@ fn format_atom_header(id: Id, atom: &Atom) -> String {
         Atom::Block { kind, num_children } => format_atom_block_header(id, *kind, *num_children),
         Atom::Bytes(bytes) => format_atom_bytes_header(id, bytes.len()),
         Atom::FewBytes(bytes) => format_atom_few_bytes_header(id, bytes.len(), false),
-        Atom::Reference(offset) => panic!("Reference not formatable yet."),
+        Atom::Reference(_offset) => todo!("Reference not formattable yet."),
     }
 }
 fn format_bytes(bytes: &[u8]) -> String {

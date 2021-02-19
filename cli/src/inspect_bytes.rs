@@ -53,7 +53,7 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
                 kind,
                 num_children,
             }),
-            Atom::Reference(offset) => panic!("Handle references."),
+            Atom::Reference(_offset) => todo!("Handle references."),
             Atom::Bytes(bytes) => {
                 info.push(WordInfo::Bytes {
                     id,

@@ -1,5 +1,4 @@
 use clap::{App, AppSettings, Arg, SubCommand};
-use semdoc_engine::atoms::*;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -45,7 +44,7 @@ fn main() {
             inspect_blocks(&file);
         }
     }
-    if let Some(ref matches) = matches.subcommand_matches("eat") {
+    if matches.subcommand_matches("eat").is_some() {
         eat(file)
     }
 }
