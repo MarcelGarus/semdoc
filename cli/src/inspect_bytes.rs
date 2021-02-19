@@ -1,14 +1,17 @@
 use colored::{Color, Colorize};
 use semdoc_engine::atoms::*;
+use semdoc_engine::flatten::Id;
 use semdoc_engine::utils::*;
 use std::cmp::min;
 use std::convert::TryInto;
 
+use crate::utils::*;
+
 enum WordInfo {
     Header { version: u16 },
-    Block { kind: u64, num_children: u8 },
-    Bytes { length: u64 },
-    FewBytes { length: u8 },
+    Block { id: Id, kind: u64, num_children: u8 },
+    Bytes { id: Id, length: u64 },
+    FewBytes { id: Id, length: u8 },
     BytesContinuation { num_relevant: u8, is_last: bool },
 }
 
@@ -36,20 +39,27 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
     };
 
     let mut cursor = 8;
+    let mut id = 0;
     while cursor < bytes.len() {
         let atom = Atom::from_bytes(&bytes[cursor..]).unwrap();
         cursor += 8 * atom.length_in_words();
         match atom {
-            Atom::Block { kind, num_children } => info.push(WordInfo::Block { kind, num_children }),
+            Atom::Block { kind, num_children } => info.push(WordInfo::Block {
+                id,
+                kind,
+                num_children,
+            }),
             Atom::Reference(offset) => panic!("Handle references."),
             Atom::Bytes(bytes) => {
                 info.push(WordInfo::Bytes {
+                    id,
                     length: bytes.len() as u64,
                 });
                 add_byte_continuations(bytes.len(), &mut info);
             }
             Atom::FewBytes(bytes) => {
                 info.push(WordInfo::FewBytes {
+                    id,
                     length: bytes.len() as u8,
                 });
                 add_byte_continuations(
@@ -58,22 +68,10 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
                     &mut info,
                 );
             }
-        };
+        }
+        id += 1;
     }
     info
-}
-
-mod colors {
-    use super::Color;
-
-    pub const MAGIC: Color = Color::BrightMagenta;
-    pub const VERSION: Color = Color::Yellow;
-    pub const ATOM_KIND: Color = Color::Yellow;
-    pub const NUM_CHILDREN: Color = Color::BrightRed;
-    pub const KIND: Color = Color::Green;
-    pub const LENGTH: Color = Color::BrightRed;
-    pub const PAYLOAD: Color = Color::BrightCyan;
-    pub const PADDING: Color = Color::Blue;
 }
 
 impl WordInfo {
@@ -85,7 +83,7 @@ impl WordInfo {
             WordInfo::Bytes { .. } => [
                 ATOM_KIND, LENGTH, LENGTH, LENGTH, LENGTH, LENGTH, LENGTH, LENGTH,
             ],
-            WordInfo::FewBytes { length: len } => {
+            WordInfo::FewBytes { length: len, .. } => {
                 let mut colors = [PADDING; 8];
                 for i in 0..min(2 + *len as usize, 8) {
                     colors[i] = PAYLOAD;
@@ -122,11 +120,11 @@ pub fn inspect_bytes(file: &str) {
 
         println!(
             "{}  {}  {}  {}{}",
-            stringify_word_index(index),
-            stringify_bytes(word, info),
-            stringify_bytes_ascii(word, info),
-            stringify_tree(&children_left, info),
-            stringify_info(info),
+            format_word_index(index),
+            format_bytes(word, info),
+            format_bytes_ascii(word, info),
+            format_tree(&children_left, info.starts_atom()),
+            format_info(info),
         );
 
         if info.starts_atom() {
@@ -155,16 +153,16 @@ impl WordInfo {
     fn ends_atom(&self) -> bool {
         match self {
             WordInfo::BytesContinuation { is_last, .. } if *is_last => true,
-            WordInfo::FewBytes { length } if *length <= 6 => true,
+            WordInfo::FewBytes { length, .. } if *length <= 6 => true,
             _ => false,
         }
     }
 }
 
-fn stringify_word_index(index: usize) -> String {
+fn format_word_index(index: usize) -> String {
     format!("{:4}", index)
 }
-fn stringify_bytes(word: &[u8], info: &WordInfo) -> String {
+fn format_bytes(word: &[u8], info: &WordInfo) -> String {
     let styles = info.to_byte_styles();
     word.iter()
         .enumerate()
@@ -172,38 +170,15 @@ fn stringify_bytes(word: &[u8], info: &WordInfo) -> String {
         .collect::<Vec<_>>()
         .join(" ")
 }
-fn stringify_bytes_ascii(word: &[u8], info: &WordInfo) -> String {
+fn format_bytes_ascii(word: &[u8], info: &WordInfo) -> String {
     let styles = info.to_byte_styles();
     word.iter()
         .enumerate()
-        .map(|(i, byte)| {
-            (if (32..=126).contains(byte) {
-                format!("{}", *byte as char)
-            } else {
-                ".".to_string()
-            })
-            .color(styles[i])
-            .to_string()
-        })
+        .map(|(i, byte)| byte.ascii_or_dot().to_string().color(styles[i]).to_string())
         .collect::<Vec<_>>()
         .join("")
 }
-fn stringify_tree(children_left: &[usize], info: &WordInfo) -> String {
-    children_left
-        .iter()
-        .enumerate()
-        .map(|(index, left)| (index == children_left.len() - 1, left))
-        .map(|(is_last_layer, left)| match left {
-            0 => "  ",
-            _ if !is_last_layer => "│ ",
-            1 if info.starts_atom() => "└─",
-            _ if info.starts_atom() => "├─",
-            _ => "│ ",
-        })
-        .collect::<Vec<_>>()
-        .join("")
-}
-fn stringify_info(info: &WordInfo) -> String {
+fn format_info(info: &WordInfo) -> String {
     match info {
         WordInfo::Header { version } => {
             format!(
@@ -212,30 +187,13 @@ fn stringify_info(info: &WordInfo) -> String {
                 format!("SemDoc version {}", version).color(colors::VERSION),
             )
         }
-        WordInfo::Block { kind, num_children } => format!(
-            "{}{}{}",
-            "Block, ".color(colors::ATOM_KIND).bold(),
-            format!("kind {}, ", kind).color(colors::KIND),
-            format!(
-                "{} {}",
-                num_children,
-                match num_children {
-                    1 => "child",
-                    _ => "children",
-                }
-            )
-            .color(colors::NUM_CHILDREN),
-        ),
-        WordInfo::Bytes { length } => format!(
-            "{}{}",
-            "Bytes, ".color(colors::ATOM_KIND).bold(),
-            format!("{} bytes long", length).color(colors::LENGTH),
-        ),
-        WordInfo::FewBytes { length } => format!(
-            "{}{}",
-            "FewBytes, ".color(colors::ATOM_KIND).bold(),
-            format!("{} bytes long", length).color(colors::LENGTH),
-        ),
+        WordInfo::Block {
+            id,
+            kind,
+            num_children,
+        } => format_atom_block_header(*id, *kind, *num_children),
+        WordInfo::Bytes { id, length } => format_atom_bytes_header(*id, *length as usize),
+        WordInfo::FewBytes { id, length } => format_atom_few_bytes_header(*id, *length as usize),
         WordInfo::BytesContinuation { num_relevant, .. } => format!(
             "{}{}",
             "Payload".color(colors::PAYLOAD),

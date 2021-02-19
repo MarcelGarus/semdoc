@@ -9,3 +9,5 @@ clap = "2"
 colored = "2"
 semdoc_engine = { path = "../engine" }
 markdown_to_semdoc = { path = "../convert/markdown-to-semdoc" }
+textwrap = "0.13"
+terminal_size = "0.1"
