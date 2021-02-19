@@ -25,8 +25,12 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
         let num_payload_words = length.round_up_to_multiple_of(8) / 8;
         for i in 0..num_payload_words {
             info.push(if i == num_payload_words - 1 {
+                let mut num_relevant = (length % 8) as u8;
+                if num_relevant == 0 {
+                    num_relevant = 8;
+                }
                 WordInfo::BytesContinuation {
-                    num_relevant: (length % 8) as u8,
+                    num_relevant,
                     is_last: true,
                 }
             } else {
@@ -193,14 +197,9 @@ fn format_info(info: &WordInfo) -> String {
             num_children,
         } => format_atom_block_header(*id, *kind, *num_children),
         WordInfo::Bytes { id, length } => format_atom_bytes_header(*id, *length as usize),
-        WordInfo::FewBytes { id, length } => format_atom_few_bytes_header(*id, *length as usize),
-        WordInfo::BytesContinuation { num_relevant, .. } => format!(
-            "{}{}",
-            "Payload".color(colors::PAYLOAD),
-            match num_relevant {
-                8 => "".to_owned(),
-                _ => " + padding".color(colors::PADDING).to_string(),
-            }
-        ),
+        WordInfo::FewBytes { id, length } => {
+            format_atom_few_bytes_header(*id, *length as usize, true)
+        }
+        WordInfo::BytesContinuation { num_relevant, .. } => format_payload_label(*num_relevant < 8),
     }
 }

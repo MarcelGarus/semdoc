@@ -102,7 +102,6 @@ impl ParseAtoms for [u8] {
         let mut cursor = 0;
         while cursor < self.len() {
             let atom = Atom::from_bytes(&self[cursor..]).unwrap();
-            println!("Parsed {:?} Length is {}", atom, atom.length_in_words());
             cursor += 8 * atom.length_in_words();
             atoms.push(atom);
         }

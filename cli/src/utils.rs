@@ -34,7 +34,7 @@ pub fn format_atom_block_header(id: Id, kind: u64, num_children: u8) -> String {
     format!(
         "{}{}{}",
         format_atom_header_start("Block", id),
-        format!("kind {}, ", kind).color(colors::KIND),
+        format!("kind {} ({}), ", kind, kind_to_name(kind)).color(colors::KIND),
         format!(
             "{} {}",
             num_children,
@@ -50,14 +50,18 @@ pub fn format_atom_bytes_header(id: Id, length: usize) -> String {
     format!(
         "{}{}",
         format_atom_header_start("Bytes", id),
-        format!("{} bytes long", length).color(colors::LENGTH),
+        format_n_bytes_long(length, false),
     )
 }
-pub fn format_atom_few_bytes_header(id: Id, length: usize) -> String {
+pub fn format_atom_few_bytes_header(id: Id, length: usize, show_payload_label: bool) -> String {
     format!(
-        "{}{}",
+        "{}{}{}",
         format_atom_header_start("FewBytes", id),
-        format!("{} bytes long", length).color(colors::LENGTH),
+        format_n_bytes_long(length, show_payload_label && length > 0),
+        match show_payload_label {
+            true => format_payload_label(length < 6),
+            false => "".to_owned(),
+        }
     )
 }
 fn format_atom_header_start(atom_kind: &str, id: Id) -> String {
@@ -65,6 +69,43 @@ fn format_atom_header_start(atom_kind: &str, id: Id) -> String {
         "{}atom #{}, ",
         format!("{}, ", atom_kind).color(colors::ATOM_KIND).bold(),
         id,
+    )
+}
+fn kind_to_name(kind: u64) -> String {
+    match kind {
+        0 => "Empty",
+        1 => "Text",
+        2 => "Section",
+        3 => "DenseSequence",
+        4 => "SplitSequence",
+        _ => "Unknown",
+    }
+    .to_owned()
+}
+fn format_n_bytes_long(num_bytes: usize, trailing_comma: bool) -> String {
+    format!(
+        "{} {} long{}",
+        num_bytes,
+        match num_bytes {
+            1 => "byte",
+            _ => "bytes",
+        },
+        match trailing_comma {
+            true => ", ",
+            false => "",
+        }
+    )
+    .color(colors::LENGTH)
+    .to_string()
+}
+pub fn format_payload_label(plus_padding: bool) -> String {
+    format!(
+        "{}{}",
+        "Payload".color(colors::PAYLOAD),
+        match plus_padding {
+            true => " + padding".color(colors::PADDING).to_string(),
+            false => "".to_owned(),
+        }
     )
 }
 

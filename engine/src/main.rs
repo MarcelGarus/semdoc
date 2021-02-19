@@ -17,7 +17,7 @@ pub fn main() {
         title: Box::new(Text("SemDoc".to_string())),
         body: Box::new(SplitSequence(vec![
             Text("Hello, world!".to_string()),
-            Text("This is a test.".to_string()),
+            Text("This is a test. Hello!".to_string()),
         ])),
     });
     let bytes = doc.to_bytes();
