@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use super::utils::*;
 
 pub type AtomKind = u64;
@@ -13,10 +11,14 @@ pub enum Atom {
     FewBytes(Vec<u8>),
 }
 
-pub trait LengthInWords {
-    fn length_in_words(&self) -> usize;
+#[derive(Debug)]
+pub enum AtomError {
+    UnexpectedEnd,
+    UnknownType(u8),
+    AlignmentNotZero,
 }
-impl LengthInWords for Atom {
+
+impl Atom {
     fn length_in_words(&self) -> usize {
         use Atom::*;
 
@@ -30,32 +32,38 @@ impl LengthInWords for Atom {
             }
         }
     }
-}
 
-impl Atom {
     pub fn to_bytes(&self) -> Vec<u8> {
+        use Atom::*;
+
         match self {
-            Atom::Block { num_children, kind } => {
+            Block { num_children, kind } => {
+                assert!(
+                    *kind <= MAX_VALUE_USING_6_BYTES,
+                    "The kind of an Atom::Block is too big. The maximum supported kind is {}.",
+                    MAX_VALUE_USING_6_BYTES
+                );
                 let mut bytes = vec![0];
                 bytes.push(*num_children);
                 bytes.extend_from_slice(&kind.to_be_bytes()[2..]);
                 bytes
             }
-            Atom::Reference(offset) => {
+            Reference(offset) => {
+                assert!(*offset <= MAX_VALUE_USING_7_BYTES, "The offset of an Atom::Reference is too big. The maximum supported offset is {}.", MAX_VALUE_USING_7_BYTES);
                 let mut bytes = vec![1];
                 bytes.extend_from_slice(&offset.to_be_bytes()[1..]);
                 bytes
             }
-            Atom::Bytes(payload_bytes) => {
+            Bytes(payload_bytes) => {
+                assert!(payload_bytes.len()  <= MAX_VALUE_USING_7_BYTES as usize, "The bytes saved in an Atom::Bytes are too long. The maximum supported length is {}.", MAX_VALUE_USING_7_BYTES);
                 let mut bytes = vec![2];
-                bytes.extend_from_slice(
-                    &u64::try_from(payload_bytes.len()).unwrap().to_be_bytes()[1..],
-                );
+                bytes.extend_from_slice(&(payload_bytes.len() as u64).to_be_bytes()[1..]);
                 bytes.extend_from_slice(&payload_bytes);
                 bytes.align();
                 bytes
             }
-            Atom::FewBytes(payload_bytes) => {
+            FewBytes(payload_bytes) => {
+                assert!(payload_bytes.len() <= u8::MAX as usize, "The bytes saved in an Atom::FewBytes are too long. The maximum supported length is {}.", u8::MAX);
                 let mut bytes = vec![3];
                 bytes.push(payload_bytes.len() as u8);
                 bytes.extend_from_slice(&payload_bytes);
@@ -65,46 +73,55 @@ impl Atom {
         }
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Atom, ()> {
-        match bytes.first().unwrap() {
-            0 => Ok(Atom::Block {
-                kind: u64::clone_from_slice(&bytes[0..8]) & 0x00_00_ff_ff_ff_ff_ff_ff,
-                num_children: *bytes.get(1).unwrap(),
-            }),
-            1 => {
-                let offset = u64::clone_from_slice(&bytes[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff;
-                Ok(Atom::Reference(offset))
-            }
+    pub fn from(bytes: &[u8]) -> Result<Atom, AtomError> {
+        use Atom::*;
+        Ok(match bytes.first().ok_or(AtomError::UnexpectedEnd)? {
+            0 => Block {
+                kind: u64::clone_from_slice(&bytes[0..8]) & MAX_VALUE_USING_6_BYTES,
+                num_children: *bytes.get(1).ok_or(AtomError::UnexpectedEnd)?,
+            },
+            1 => Reference(u64::clone_from_slice(&bytes[0..8]) & MAX_VALUE_USING_7_BYTES),
             2 => {
                 let length =
-                    (u64::clone_from_slice(&bytes[0..8]) & 0x00_ff_ff_ff_ff_ff_ff_ff) as usize;
+                    (u64::clone_from_slice(&bytes[0..8]) & MAX_VALUE_USING_7_BYTES) as usize;
                 let payload_bytes = &bytes[8..(8 + length)];
-                // TODO(marcelgarus): Check alignment bytes.
-                Ok(Atom::Bytes(payload_bytes.to_vec()))
+                if bytes[(8 + length)..(8 + length).round_up_to_multiple_of(8)]
+                    .iter()
+                    .any(|byte| *byte != 0)
+                {
+                    return Err(AtomError::AlignmentNotZero);
+                }
+                Bytes(payload_bytes.to_vec())
             }
             3 => {
                 let length = bytes[1] as usize;
                 let payload_bytes = &bytes[2..(2 + length)];
                 // TODO(marcelgarus): Check alignment bytes.
-                Ok(Atom::FewBytes(payload_bytes.to_vec()))
+                FewBytes(payload_bytes.to_vec())
             }
-            kind => todo!("Unknown atom kind {:02x}. Bytes: {:?}", kind, bytes),
-        }
+            type_ => return Err(AtomError::UnknownType(*type_)),
+        })
     }
 }
 
 pub trait ParseAtoms {
-    fn parse_atoms(&self) -> Result<Vec<Atom>, ()>;
+    fn parse_atoms(&self) -> Result<Vec<Atom>, AtomError>;
 }
 impl ParseAtoms for [u8] {
-    fn parse_atoms(&self) -> Result<Vec<Atom>, ()> {
+    fn parse_atoms(&self) -> Result<Vec<Atom>, AtomError> {
         let mut atoms = vec![];
         let mut cursor = 0;
         while cursor < self.len() {
-            let atom = Atom::from_bytes(&self[cursor..]).unwrap();
+            let atom = Atom::from(&self[cursor..])?;
             cursor += 8 * atom.length_in_words();
             atoms.push(atom);
         }
         Ok(atoms)
     }
 }
+
+const fn max_value_using_n_bytes(n: u32) -> usize {
+    2usize.pow(n) - 1
+}
+const MAX_VALUE_USING_6_BYTES: u64 = max_value_using_n_bytes(6) as u64;
+const MAX_VALUE_USING_7_BYTES: u64 = max_value_using_n_bytes(7) as u64;

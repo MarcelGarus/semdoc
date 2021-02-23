@@ -24,7 +24,7 @@ impl SemDoc {
         bytes.extend_from_slice(
             &self
                 .block
-                .lower()
+                .to_molecule()
                 .schedule()
                 .iter()
                 .map(|atom| atom.to_bytes())
@@ -37,18 +37,7 @@ impl SemDoc {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, ()> {
         assert!(bytes.starts_with(MAGIC_BYTES));
         assert_eq!(u16::from_be_bytes(bytes[6..8].try_into().unwrap()), VERSION);
-        let block = bytes[8..]
-            .parse_atoms()
-            .unwrap()
-            // .into_iter()
-            // .map(|it| {
-            //     println!("{:?}", it);
-            //     it
-            // })
-            // .collect::<Vec<_>>()
-            .parse_molecule()
-            .unwrap()
-            .higher();
+        let block = Block::from(&Molecule::from(&bytes[8..].parse_atoms().unwrap()).unwrap());
         Ok(Self { block })
     }
 }
