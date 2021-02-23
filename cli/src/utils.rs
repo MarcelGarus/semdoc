@@ -1,5 +1,6 @@
 use colored::{Color, Colorize};
-use semdoc_engine::flatten::Id;
+
+pub type Id = usize;
 
 pub mod colors {
     use super::Color;

@@ -1,6 +1,5 @@
 use colored::{Color, Colorize};
 use semdoc_engine::atoms::*;
-use semdoc_engine::flatten::Id;
 use semdoc_engine::utils::*;
 use std::cmp::min;
 use std::convert::TryInto;

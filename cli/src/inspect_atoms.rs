@@ -1,6 +1,5 @@
 use colored::Colorize;
 use semdoc_engine::atoms::*;
-use semdoc_engine::flatten::Id;
 
 use crate::utils::*;
 
