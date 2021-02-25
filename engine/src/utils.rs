@@ -16,9 +16,9 @@ pub trait CloneFromSlice {
 }
 impl CloneFromSlice for u64 {
     fn clone_from_slice(bytes: &[u8]) -> Self {
-        assert_eq!(bytes.len(), 8);
+        assert!(bytes.len() <= 8);
         let mut tmp = [0u8; 8];
-        tmp.clone_from_slice(&bytes);
+        tmp[8 - bytes.len()..].clone_from_slice(&bytes);
         u64::from_be_bytes(tmp)
     }
 }

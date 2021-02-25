@@ -4,15 +4,16 @@ use std::io::prelude::*;
 mod atoms;
 mod blocks;
 mod doc;
-mod molecules;
-mod scheduler;
+mod memory;
+mod molecule;
+mod source;
 mod utils;
 
 use blocks::Block::*;
-use doc::SemDoc;
+use doc::*;
 
 pub fn main() {
-    let doc = SemDoc::new(Section {
+    let doc = PureSemDoc::new(Section {
         title: Box::new(Text("SemDoc".to_string())),
         body: Box::new(SplitSequence(vec![
             Text("Hello, world!".to_string()),
@@ -31,6 +32,6 @@ pub fn main() {
     let mut file = File::create("helloworld.sd").unwrap();
     file.write_all(&bytes).unwrap();
 
-    let doc = SemDoc::from_bytes(&bytes[..]);
+    let doc = from_bytes(&bytes[..]);
     println!("Retrieved doc: {:?}", doc);
 }

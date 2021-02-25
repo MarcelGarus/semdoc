@@ -19,7 +19,7 @@ pub enum AtomError {
 }
 
 impl Atom {
-    fn length_in_words(&self) -> usize {
+    pub fn length_in_words(&self) -> usize {
         use Atom::*;
 
         match self {
@@ -55,7 +55,7 @@ impl Atom {
                 bytes
             }
             Bytes(payload_bytes) => {
-                assert!(payload_bytes.len()  <= MAX_VALUE_USING_7_BYTES as usize, "The bytes saved in an Atom::Bytes are too long. The maximum supported length is {}.", MAX_VALUE_USING_7_BYTES);
+                assert!(payload_bytes.len() <= MAX_VALUE_USING_7_BYTES as usize, "The bytes saved in an Atom::Bytes are too long. The maximum supported length is {}.", MAX_VALUE_USING_7_BYTES);
                 let mut bytes = vec![2];
                 bytes.extend_from_slice(&(payload_bytes.len() as u64).to_be_bytes()[1..]);
                 bytes.extend_from_slice(&payload_bytes);
@@ -77,13 +77,12 @@ impl Atom {
         use Atom::*;
         Ok(match bytes.first().ok_or(AtomError::UnexpectedEnd)? {
             0 => Block {
-                kind: u64::clone_from_slice(&bytes[0..8]) & MAX_VALUE_USING_6_BYTES,
+                kind: u64::clone_from_slice(&bytes[2..8]),
                 num_children: *bytes.get(1).ok_or(AtomError::UnexpectedEnd)?,
             },
-            1 => Reference(u64::clone_from_slice(&bytes[0..8]) & MAX_VALUE_USING_7_BYTES),
+            1 => Reference(u64::clone_from_slice(&bytes[1..8])),
             2 => {
-                let length =
-                    (u64::clone_from_slice(&bytes[0..8]) & MAX_VALUE_USING_7_BYTES) as usize;
+                let length = (u64::clone_from_slice(&bytes[1..8])) as usize;
                 let payload_bytes = &bytes[8..(8 + length)];
                 if bytes[(8 + length)..(8 + length).round_up_to_multiple_of(8)]
                     .iter()
@@ -120,8 +119,5 @@ impl ParseAtoms for [u8] {
     }
 }
 
-const fn max_value_using_n_bytes(n: u32) -> usize {
-    2usize.pow(n) - 1
-}
-const MAX_VALUE_USING_6_BYTES: u64 = max_value_using_n_bytes(6) as u64;
-const MAX_VALUE_USING_7_BYTES: u64 = max_value_using_n_bytes(7) as u64;
+const MAX_VALUE_USING_6_BYTES: u64 = 281474976710656;
+const MAX_VALUE_USING_7_BYTES: u64 = 72057594037927936;

@@ -1,19 +1,19 @@
 use std::convert::TryInto;
 
 use super::blocks::*;
-use super::molecules::*;
-use super::scheduler::*;
+use super::memory::*;
 use crate::atoms::*;
+use crate::source::*;
 
 const MAGIC_BYTES: &[u8] = b"SemDoc";
 const VERSION: u16 = 0;
 
-#[derive(Debug)]
-pub struct SemDoc {
-    pub block: Block,
+#[derive(Debug, Clone)]
+pub struct SemDoc<S: Source> {
+    pub block: Block<S>,
 }
-impl SemDoc {
-    pub fn new(block: Block) -> Self {
+impl<S: Source> SemDoc<S> {
+    pub fn new(block: Block<S>) -> Self {
         Self { block }
     }
 
@@ -25,7 +25,7 @@ impl SemDoc {
             &self
                 .block
                 .to_molecule()
-                .schedule()
+                .to_atoms()
                 .iter()
                 .map(|atom| atom.to_bytes())
                 .flatten()
@@ -33,11 +33,18 @@ impl SemDoc {
         );
         bytes
     }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ()> {
-        assert!(bytes.starts_with(MAGIC_BYTES));
-        assert_eq!(u16::from_be_bytes(bytes[6..8].try_into().unwrap()), VERSION);
-        let block = Block::from(&Molecule::from(&bytes[8..].parse_atoms().unwrap()).unwrap());
-        Ok(Self { block })
-    }
 }
+
+pub fn from_bytes(bytes: &[u8]) -> SemDoc<Memory> {
+    assert!(bytes.starts_with(MAGIC_BYTES));
+    assert_eq!(u16::from_be_bytes(bytes[6..8].try_into().unwrap()), VERSION);
+    let block = Block::from(&MemoryMolecule::from(&bytes[8..].parse_atoms().unwrap()));
+    SemDoc { block }
+}
+
+#[derive(Debug, Clone)]
+pub struct Pure();
+impl Source for Pure {
+    type Error = ();
+}
+pub type PureSemDoc = SemDoc<Pure>;

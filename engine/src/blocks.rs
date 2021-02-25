@@ -1,21 +1,29 @@
-use crate::molecules::MoleculeData;
-use crate::molecules::*;
+use crate::molecule::*;
+use crate::source::*;
 
 // TODO(marcelgarus): Document.
 #[derive(Debug, Clone)]
-pub enum Block {
-    // Special.
-    Unknown { kind: u64 },
-    Error,
+pub enum Block<S: Source> {
+    // Implementation-specific.
+    Error(Error<S>),
 
     // General content.
     Empty,
     Text(String),
-    Section { title: Box<Block>, body: Box<Block> },
-    DenseSequence(Vec<Block>),
-    SplitSequence(Vec<Block>),
+    Section {
+        title: Box<Block<S>>,
+        body: Box<Block<S>>,
+    },
+    DenseSequence(Vec<Block<S>>),
+    SplitSequence(Vec<Block<S>>),
 }
 use Block::*;
+
+#[derive(Debug, Clone)]
+pub enum Error<S: Source> {
+    BlockLayer(BlockError),
+    LowerLayer(S::Error),
+}
 
 pub mod kinds {
     pub const EMPTY: u64 = 0;
@@ -25,114 +33,93 @@ pub mod kinds {
     pub const SPLIT_SEQUENCE: u64 = 4;
 }
 
-impl Block {
-    pub fn to_molecule(&self) -> Molecule {
+impl<S: Source> Block<S> {
+    pub fn to_molecule(&self) -> Molecule<S> {
         match self {
-            Unknown { kind } => todo!(
-                "Can't turn Block::Unknown into Molecule yet (kind was {:?}).",
-                kind
+            Error(_) => todo!("Can't turn an Error into a Molecule yet."),
+            Empty => Molecule::block(kinds::EMPTY, vec![]),
+            Text(text) => {
+                Molecule::block(kinds::TEXT, vec![Molecule::Bytes(text.as_bytes().to_vec())])
+            }
+            Section { title, body } => Molecule::block(
+                kinds::SECTION,
+                vec![title.to_molecule(), body.to_molecule()],
             ),
-            Error => todo!("Can't turn Block::Error into Molecule yet."),
-            Empty => lower_empty(),
-            Text(text) => lower_text(text),
-            Section { title, body } => lower_section(*title.clone(), *body.clone()),
-            DenseSequence(items) => lower_dense_sequence(items.clone()),
-            SplitSequence(items) => lower_split_sequence(items.clone()),
+            DenseSequence(items) => {
+                Molecule::block(kinds::DENSE_SEQUENCE, items.clone().into_molecules())
+            }
+            SplitSequence(items) => {
+                Molecule::block(kinds::SPLIT_SEQUENCE, items.clone().into_molecules())
+            }
         }
     }
 
-    pub fn from(molecule: &Molecule) -> Block {
-        let heightened = match molecule.kind {
-            kinds::EMPTY => heighten_empty(molecule.children.clone()),
-            kinds::TEXT => heighten_text(molecule.children.clone()),
-            kinds::SECTION => heighten_section(molecule.children.clone()),
-            kinds::DENSE_SEQUENCE => heighten_dense_sequence(molecule.children.clone()),
-            kinds::SPLIT_SEQUENCE => heighten_split_sequence(molecule.children.clone()),
-            kind => return Unknown { kind },
-        };
-        match heightened {
-            Ok(block) => block,
-            Err(_) => Error,
+    pub fn try_from(kind: u64, children: Vec<Molecule<S>>) -> Result<Block<S>, BlockError> {
+        match kind {
+            kinds::EMPTY => Ok(Block::Empty),
+            kinds::TEXT => Ok(Text(
+                String::from_utf8(children.need_at(0)?.need_bytes()?)
+                    .map_err(|_| BlockError::InvalidUtf8Encoding)?,
+            )),
+            kinds::SECTION => Ok(Section {
+                title: Box::new(Block::from(&children.need_at(0)?)),
+                body: Box::new(Block::from(&children.need_at(1)?)),
+            }),
+            kinds::DENSE_SEQUENCE => Ok(DenseSequence(
+                children.iter().map(|data| Block::from(data)).collect(),
+            )),
+            kinds::SPLIT_SEQUENCE => Ok(SplitSequence(
+                children.iter().map(|data| Block::from(data)).collect(),
+            )),
+            _kind => Err(BlockError::UnknownKind),
+        }
+    }
+
+    pub fn from(molecule: &Molecule<S>) -> Block<S> {
+        match molecule {
+            Molecule::Bytes(_) => Error(Error::BlockLayer(BlockError::ExpectedBlock)),
+            Molecule::Error(error) => Error(Error::LowerLayer(error.clone())),
+            Molecule::Block { kind, children } => match Self::try_from(*kind, children.clone()) {
+                Ok(block) => block,
+                Err(error) => Block::Error(Error::BlockLayer(error)),
+            },
         }
     }
 }
 
-#[derive(Debug)]
-pub struct BlockError();
-
-fn lower_empty() -> Molecule {
-    Molecule::new(kinds::EMPTY, vec![])
-}
-fn heighten_empty(_: Vec<MoleculeData>) -> Result<Block, BlockError> {
-    Ok(Block::Empty)
-}
-
-fn lower_text(text: &str) -> Molecule {
-    Molecule::new(
-        kinds::TEXT,
-        vec![MoleculeData::Bytes(text.as_bytes().to_vec())],
-    )
-}
-fn heighten_text(children: Vec<MoleculeData>) -> Result<Block, BlockError> {
-    Ok(Text(
-        String::from_utf8(
-            children
-                .first()
-                .ok_or(BlockError())?
-                .bytes()
-                .ok_or(BlockError())?,
-        )
-        .map_err(|_| BlockError())?,
-    ))
+#[derive(Debug, Clone)]
+pub enum BlockError {
+    ExpectedBlock,
+    ExpectedBytes,
+    UnknownKind,
+    InvalidUtf8Encoding,
+    TooFewMolecules,
 }
 
-fn lower_section(title: Block, body: Block) -> Molecule {
-    Molecule::new(
-        kinds::SECTION,
-        vec![
-            MoleculeData::Block(title.to_molecule()),
-            MoleculeData::Block(body.to_molecule()),
-        ],
-    )
+trait IntoMolecules<S: Source> {
+    fn into_molecules(self) -> Vec<Molecule<S>>;
 }
-fn heighten_section(children: Vec<MoleculeData>) -> Result<Block, BlockError> {
-    Ok(Section {
-        title: Box::new(Block::from(&children.get(0).unwrap().block().unwrap())),
-        body: Box::new(Block::from(&children.get(1).unwrap().block().unwrap())),
-    })
+impl<S: Source> IntoMolecules<S> for Vec<Block<S>> {
+    fn into_molecules(self) -> Vec<Molecule<S>> {
+        self.iter().map(|child| child.to_molecule()).collect()
+    }
 }
-
-fn lower_dense_sequence(items: Vec<Block>) -> Molecule {
-    Molecule::new(kinds::DENSE_SEQUENCE, items.into_molecules())
+trait NeedAt<S: Source> {
+    fn need_at(&self, index: usize) -> Result<Molecule<S>, BlockError>;
 }
-fn heighten_dense_sequence(children: Vec<MoleculeData>) -> Result<Block, BlockError> {
-    Ok(DenseSequence(
-        children
-            .iter()
-            .map(|data| Block::from(&data.block().unwrap()))
-            .collect(),
-    ))
+impl<S: Source> NeedAt<S> for Vec<Molecule<S>> {
+    fn need_at(&self, index: usize) -> Result<Molecule<S>, BlockError> {
+        Ok(self.get(index).ok_or(BlockError::TooFewMolecules)?.clone())
+    }
 }
-
-fn lower_split_sequence(items: Vec<Block>) -> Molecule {
-    Molecule::new(kinds::SPLIT_SEQUENCE, items.into_molecules())
+trait NeedBytes<S: Source> {
+    fn need_bytes(&self) -> Result<Vec<u8>, BlockError>;
 }
-fn heighten_split_sequence(children: Vec<MoleculeData>) -> Result<Block, BlockError> {
-    Ok(SplitSequence(
-        children
-            .iter()
-            .map(|data| Block::from(&data.block().unwrap()))
-            .collect(),
-    ))
-}
-
-trait LowerMultiple {
-    fn into_molecules(self) -> Vec<MoleculeData>;
-}
-impl LowerMultiple for Vec<Block> {
-    fn into_molecules(self) -> Vec<MoleculeData> {
-        self.iter()
-            .map(|child| MoleculeData::Block(child.to_molecule()))
-            .collect()
+impl<S: Source> NeedBytes<S> for Molecule<S> {
+    fn need_bytes(&self) -> Result<Vec<u8>, BlockError> {
+        match self {
+            Molecule::Bytes(bytes) => Ok(bytes.clone()),
+            _ => Err(BlockError::ExpectedBytes),
+        }
     }
 }
