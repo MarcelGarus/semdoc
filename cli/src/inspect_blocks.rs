@@ -1,18 +1,19 @@
 use colored::Colorize;
-use semdoc_engine::{Block, SemDoc};
+use semdoc_engine::{from_bytes, Block, SemDoc, Source};
 
 pub fn inspect_blocks(file: &str) {
     let bytes = std::fs::read(file).expect("File not found.");
-    let doc = SemDoc::from_bytes(&bytes).unwrap();
+    let doc = from_bytes(&bytes);
 
     println!("{}", format_block(&doc.block));
 }
 
-fn format_block(block: &Block) -> String {
+fn format_block<S: Source>(block: &Block<S>) -> String {
     use Block::*;
 
     match block {
-        Unknown { .. } => format_block_kind("Unknown"),
+        Error(_) => format_block_kind("Error"),
+        // Unknown { .. } => format_block_kind("Unknown"),
         Empty => format_block_kind("Empty"),
         Text(text) => format!("{}: {}", format_block_kind("Text"), text),
         Section { title, body } => format!(
@@ -35,7 +36,7 @@ fn format_block(block: &Block) -> String {
 fn format_block_kind(kind: &str) -> String {
     kind.yellow().bold().to_string()
 }
-fn format_children_with_roles(roles_and_children: Vec<(&str, &Block)>) -> String {
+fn format_children_with_roles<S: Source>(roles_and_children: Vec<(&str, &Block<S>)>) -> String {
     format_children_strings(
         &roles_and_children
             .iter()
@@ -43,7 +44,7 @@ fn format_children_with_roles(roles_and_children: Vec<(&str, &Block)>) -> String
             .collect::<Vec<_>>()[..],
     )
 }
-fn format_children_without_roles(children: &[Block]) -> String {
+fn format_children_without_roles<S: Source>(children: &[Block<S>]) -> String {
     format_children_strings(
         &children
             .iter()

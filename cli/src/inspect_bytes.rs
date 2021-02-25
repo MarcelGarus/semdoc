@@ -44,7 +44,7 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
     let mut cursor = 8;
     let mut id = 0;
     while cursor < bytes.len() {
-        let atom = Atom::from_bytes(&bytes[cursor..]).unwrap();
+        let atom = Atom::from(&bytes[cursor..]).unwrap();
         cursor += 8 * atom.length_in_words();
         match atom {
             Atom::Block { kind, num_children } => info.push(WordInfo::Block {
