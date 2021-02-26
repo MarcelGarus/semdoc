@@ -1,5 +1,6 @@
 use colored::Colorize;
 use semdoc_engine::atoms::*;
+use semdoc_engine::memory::*;
 
 use crate::utils::*;
 
@@ -7,39 +8,18 @@ pub fn inspect_atoms(file: &str) {
     println!("Inspecting atoms.");
 
     let bytes = std::fs::read(file).expect("File not found.");
-    let atoms = (&bytes[8..]).parse_atoms().expect("File corrupted.");
-    let mut children_left = vec![]; // How many children are left in each indentation level.
+    let mut cursor = 8;
 
-    for (id, atom) in atoms.iter().enumerate() {
-        println!(
-            "{}{}",
-            format_tree(&children_left, true),
-            format_atom_header(id, &atom),
-        );
-        let num_layers = children_left.len();
-        if num_layers > 0 && children_left[num_layers - 1] > 0 {
-            children_left[num_layers - 1] -= 1;
-        }
-
-        // Draw the other lines.
-        if let Atom::Bytes(bytes) | Atom::FewBytes(bytes) = &atom {
-            let terminal_width = terminal_size::terminal_size()
-                .map(|size| size.0 .0)
-                .unwrap_or(80);
-            let tree_prefix = format_tree(&children_left, false);
-            let wrapped = textwrap::fill(
-                &format_bytes(&bytes),
-                terminal_width as usize - tree_prefix.len() - 1,
-            );
-            print!("{}", textwrap::indent(&wrapped, &tree_prefix));
-        }
-
-        if let Atom::Block { num_children, .. } = atom {
-            children_left.push(*num_children as usize);
-        }
-        while matches!(children_left.last(), Some(left) if *left == 0) {
-            children_left.pop();
-        }
+    for _ in 0.. {
+        let atom = match Atom::try_from(&bytes[cursor..]) {
+            Ok(atom) => atom,
+            Err(_) => {
+                println!("Error.");
+                return;
+            }
+        };
+        println!("{}: {}", cursor, format_atom_header(cursor, &atom),);
+        cursor += 8 * atom.length_in_words();
     }
 }
 fn format_atom_header(id: Id, atom: &Atom) -> String {
@@ -47,7 +27,7 @@ fn format_atom_header(id: Id, atom: &Atom) -> String {
         Atom::Block { kind, num_children } => format_atom_block_header(id, *kind, *num_children),
         Atom::Bytes(bytes) => format_atom_bytes_header(id, bytes.len()),
         Atom::FewBytes(bytes) => format_atom_few_bytes_header(id, bytes.len(), false),
-        Atom::Reference(_offset) => todo!("Reference not formattable yet."),
+        Atom::Reference(offset) => format_atom_reference_header(id, *offset),
     }
 }
 fn format_bytes(bytes: &[u8]) -> String {
