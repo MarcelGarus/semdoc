@@ -5,6 +5,7 @@ use std::io::prelude::*;
 mod inspect_atoms;
 mod inspect_blocks;
 mod inspect_bytes;
+mod inspect_molecules;
 mod utils;
 
 fn main() {
@@ -26,6 +27,10 @@ fn main() {
                 .subcommand(
                     SubCommand::with_name("blocks")
                         .about("Inspects the blocks of the SemDoc file."),
+                )
+                .subcommand(
+                    SubCommand::with_name("molecules")
+                        .about("Inspects the molecules of the SemDoc file."),
                 ),
         )
         .subcommand(SubCommand::with_name("eat"))
@@ -43,6 +48,9 @@ fn main() {
         }
         if matches.subcommand_matches("blocks").is_some() {
             inspect_blocks::inspect_blocks(&file);
+        }
+        if matches.subcommand_matches("molecules").is_some() {
+            inspect_molecules::inspect_molecules(&file);
         }
     }
     if matches.subcommand_matches("eat").is_some() {
