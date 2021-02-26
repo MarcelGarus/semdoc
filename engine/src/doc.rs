@@ -38,7 +38,7 @@ impl<S: Source> SemDoc<S> {
 pub fn from_bytes(bytes: &[u8]) -> SemDoc<Memory> {
     assert!(bytes.starts_with(MAGIC_BYTES));
     assert_eq!(u16::from_be_bytes(bytes[6..8].try_into().unwrap()), VERSION);
-    let block = Block::from(&MemoryMolecule::from(&bytes[8..].parse_atoms().unwrap()));
+    let block = Block::from(&MemoryMolecule::from(&bytes[8..]));
     SemDoc { block }
 }
 

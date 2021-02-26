@@ -73,8 +73,11 @@ impl Atom {
         }
     }
 
-    pub fn from(bytes: &[u8]) -> Result<Atom, AtomError> {
+    pub fn try_from(bytes: &[u8]) -> Result<Atom, AtomError> {
         use Atom::*;
+        if bytes.len() < 8 {
+            return Err(AtomError::UnexpectedEnd);
+        }
         Ok(match bytes.first().ok_or(AtomError::UnexpectedEnd)? {
             0 => Block {
                 kind: u64::clone_from_slice(&bytes[2..8]),
@@ -83,6 +86,9 @@ impl Atom {
             1 => Reference(u64::clone_from_slice(&bytes[1..8])),
             2 => {
                 let length = (u64::clone_from_slice(&bytes[1..8])) as usize;
+                if bytes.len() < 8 + length {
+                    return Err(AtomError::UnexpectedEnd);
+                }
                 let payload_bytes = &bytes[8..(8 + length)];
                 if bytes[(8 + length)..(8 + length).round_up_to_multiple_of(8)]
                     .iter()
@@ -94,6 +100,9 @@ impl Atom {
             }
             3 => {
                 let length = bytes[1] as usize;
+                if bytes.len() < 2 + length {
+                    return Err(AtomError::UnexpectedEnd);
+                }
                 let payload_bytes = &bytes[2..(2 + length)];
                 // TODO(marcelgarus): Check alignment bytes.
                 FewBytes(payload_bytes.to_vec())
@@ -103,21 +112,5 @@ impl Atom {
     }
 }
 
-pub trait ParseAtoms {
-    fn parse_atoms(&self) -> Result<Vec<Atom>, AtomError>;
-}
-impl ParseAtoms for [u8] {
-    fn parse_atoms(&self) -> Result<Vec<Atom>, AtomError> {
-        let mut atoms = vec![];
-        let mut cursor = 0;
-        while cursor < self.len() {
-            let atom = Atom::from(&self[cursor..])?;
-            cursor += 8 * atom.length_in_words();
-            atoms.push(atom);
-        }
-        Ok(atoms)
-    }
-}
-
-const MAX_VALUE_USING_6_BYTES: u64 = 281474976710656;
-const MAX_VALUE_USING_7_BYTES: u64 = 72057594037927936;
+const MAX_VALUE_USING_6_BYTES: u64 = 281474976710656 - 1;
+const MAX_VALUE_USING_7_BYTES: u64 = 72057594037927936 - 1;

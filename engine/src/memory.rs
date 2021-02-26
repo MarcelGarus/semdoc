@@ -15,32 +15,46 @@ pub enum MemoryError {
 
 pub type MemoryMolecule = Molecule<Memory>;
 impl MemoryMolecule {
-    pub fn from(atoms: &[Atom]) -> MemoryMolecule {
-        match MemoryMolecule::try_from(atoms) {
+    pub fn from(bytes: &[u8]) -> MemoryMolecule {
+        match MemoryMolecule::try_from(bytes) {
             Ok((molecule, _)) => molecule,
             Err(error) => Molecule::Error(error),
         }
     }
 }
 impl MemoryMolecule {
-    fn try_from(atoms: &[Atom]) -> Result<(MemoryMolecule, usize), MemoryError> {
-        Ok(match atoms.first().ok_or(MemoryError::UnexpectedEnd)? {
-            Atom::Block { kind, num_children } => {
-                let mut children = vec![];
-                let mut cursor = 1;
-                for _ in 0..*num_children {
-                    let (data, consumed_atoms) = MemoryMolecule::try_from(&atoms[cursor..])?;
-                    children.push(data);
-                    cursor += consumed_atoms;
+    fn try_from(bytes: &[u8]) -> Result<(MemoryMolecule, usize), MemoryError> {
+        // TODO(marcelgarus): Handle AtomErrors correctly.
+        let atom = Atom::try_from(bytes);
+        println!("Bytes are {:?}", bytes);
+        println!("Got atom {:?}", atom);
+        match atom {
+            Err(err) => Err(MemoryError::UnexpectedEnd), // TODO: Create proper error.
+            Ok(atom) => Ok(match atom {
+                Atom::Block { kind, num_children } => {
+                    let mut children = vec![];
+                    let mut cursor = 8;
+                    for _ in 0..num_children {
+                        match MemoryMolecule::try_from(&bytes[cursor..]) {
+                            Ok((data, consumed_atoms)) => {
+                                children.push(data);
+                                cursor += consumed_atoms;
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                    while children.len() < num_children.into() {
+                        children.push(Molecule::Error(MemoryError::UnexpectedEnd));
+                    }
+                    let data = Molecule::block(kind, children);
+                    (data, cursor)
                 }
-                let data = Molecule::block(*kind, children);
-                (data, cursor)
-            }
-            Atom::Reference(_offset) => {
-                todo!("Implement getting MemoryMolecule from Atom::Reference.")
-            }
-            Atom::Bytes(bytes) => (MemoryMolecule::Bytes(bytes.clone()), 1),
-            Atom::FewBytes(bytes) => (MemoryMolecule::Bytes(bytes.clone()), 1),
-        })
+                Atom::Reference(_offset) => {
+                    todo!("Implement getting MemoryMolecule from Atom::Reference.")
+                }
+                Atom::Bytes(bytes) => (MemoryMolecule::Bytes(bytes.clone()), 1),
+                Atom::FewBytes(bytes) => (MemoryMolecule::Bytes(bytes.clone()), 1),
+            }),
+        }
     }
 }
