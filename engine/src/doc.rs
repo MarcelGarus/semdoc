@@ -33,9 +33,9 @@ impl<S: Source> SemDoc<S> {
         bytes
     }
 
-    pub fn without_source_errors(self) -> Result<SemDoc<Pure>, S::Error> {
+    pub fn into_pure(self) -> Result<SemDoc<Pure>, S::Error> {
         Ok(SemDoc::<Pure> {
-            block: self.block.without_source_errors()?,
+            block: self.block.into_pure()?,
         })
     }
 }

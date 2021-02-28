@@ -86,7 +86,7 @@ impl<S: Source> Block<S> {
         }
     }
 
-    pub fn without_source_errors(self) -> Result<Block<Pure>, S::Error> {
+    pub fn into_pure(self) -> Result<Block<Pure>, S::Error> {
         Ok(match self {
             Error(error) => Error(match error {
                 Error::BlockLayer(error) => Error::BlockLayer(error),
@@ -95,11 +95,11 @@ impl<S: Source> Block<S> {
             Empty => Empty,
             Text(text) => Text(text),
             Section { title, body } => Section {
-                title: Box::new(title.without_source_errors()?),
-                body: Box::new(body.without_source_errors()?),
+                title: Box::new(title.into_pure()?),
+                body: Box::new(body.into_pure()?),
             },
-            DenseSequence(items) => DenseSequence(items.without_source_errors()?),
-            SplitSequence(items) => SplitSequence(items.without_source_errors()?),
+            DenseSequence(items) => DenseSequence(items.into_pure()?),
+            SplitSequence(items) => SplitSequence(items.into_pure()?),
         })
     }
 }
@@ -140,13 +140,13 @@ impl<S: Source> NeedBytes<S> for Molecule<S> {
         }
     }
 }
-trait VecWithoutSourceErrors<S: Source> {
-    fn without_source_errors(self) -> Result<Vec<Block<Pure>>, S::Error>;
+trait VecIntoPure<S: Source> {
+    fn into_pure(self) -> Result<Vec<Block<Pure>>, S::Error>;
 }
-impl<S: Source> VecWithoutSourceErrors<S> for Vec<Block<S>> {
-    fn without_source_errors(self) -> Result<Vec<Block<Pure>>, S::Error> {
+impl<S: Source> VecIntoPure<S> for Vec<Block<S>> {
+    fn into_pure(self) -> Result<Vec<Block<Pure>>, S::Error> {
         self.into_iter()
-            .map(|item| item.without_source_errors())
+            .map(|item| item.into_pure())
             .collect::<Result<_, _>>()
     }
 }
@@ -155,8 +155,6 @@ impl<S: Source> VecWithoutSourceErrors<S> for Vec<Block<S>> {
 mod test {
     use super::*;
     use quickcheck::*;
-    use std::cell::Cell;
-    use std::rc::Rc;
 
     impl Arbitrary for Block<Pure> {
         fn arbitrary(g: &mut Gen) -> Self {
