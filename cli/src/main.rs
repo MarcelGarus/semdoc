@@ -2,11 +2,8 @@ use clap::{App, AppSettings, Arg, SubCommand};
 use std::fs::File;
 use std::io::prelude::*;
 
-mod inspect_atoms;
-mod inspect_blocks;
-mod inspect_bytes;
-mod inspect_molecules;
-mod utils;
+mod inspect;
+use inspect::*;
 
 fn main() {
     let matches = App::new("SemDoc")
@@ -41,16 +38,16 @@ fn main() {
 
     if let Some(ref matches) = matches.subcommand_matches("inspect") {
         if matches.subcommand_matches("bytes").is_some() {
-            inspect_bytes::inspect_bytes(&file);
+            inspect_bytes(&file);
         }
         if matches.subcommand_matches("atoms").is_some() {
-            inspect_atoms::inspect_atoms(&file);
+            inspect_atoms(&file);
         }
         if matches.subcommand_matches("blocks").is_some() {
-            inspect_blocks::inspect_blocks(&file);
+            inspect_blocks(&file);
         }
         if matches.subcommand_matches("molecules").is_some() {
-            inspect_molecules::inspect_molecules(&file);
+            inspect_molecules(&file);
         }
     }
     if matches.subcommand_matches("eat").is_some() {
@@ -64,5 +61,5 @@ fn eat(file: &str) {
 
     let mut file = File::create("converted.sd").unwrap();
     file.write_all(&doc.to_bytes()).unwrap();
-    inspect_blocks::inspect_blocks("converted.sd");
+    inspect_blocks("converted.sd");
 }

@@ -87,7 +87,7 @@ name = "markdown_to_semdoc"
 version = "0.0.1"
 dependencies = [
  "pulldown-cmark",
- "semdoc_engine",
+ "semdoc",
 ]
 
 [[package]]
@@ -111,18 +111,18 @@ dependencies = [
 [[package]]
 name = "semdoc"
 version = "0.0.1"
+
+[[package]]
+name = "semdoc_cli"
+version = "0.0.1"
 dependencies = [
  "clap",
  "colored",
  "markdown_to_semdoc",
- "semdoc_engine",
+ "semdoc",
  "terminal_size",
  "textwrap 0.13.2",
 ]
-
-[[package]]
-name = "semdoc_engine"
-version = "0.0.1"
 
 [[package]]
 name = "smawk"

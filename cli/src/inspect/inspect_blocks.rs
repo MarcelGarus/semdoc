@@ -1,9 +1,9 @@
 use colored::Colorize;
-use semdoc_engine::{from_bytes, Block, SemDoc, Source};
+use semdoc::{Block, SemDoc, Source};
 
 pub fn inspect_blocks(file: &str) {
     let bytes = std::fs::read(file).expect("File not found.");
-    let doc = from_bytes(&bytes);
+    let doc = SemDoc::from_bytes(&bytes).unwrap();
 
     println!("{}", format_block(&doc.block));
 }

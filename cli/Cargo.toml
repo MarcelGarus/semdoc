@@ -1,5 +1,5 @@
 [package]
-name = "semdoc"
+name = "semdoc_cli"
 version = "0.0.1"
 authors = ["Marcel Garus <marcel.garus@gmail.com>"]
 edition = "2018"
@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 clap = "2"
 colored = "2"
-semdoc_engine = { path = "../engine" }
+semdoc = { path = "../engine" }
 markdown_to_semdoc = { path = "../convert/markdown-to-semdoc" }
 textwrap = "0.13"
 terminal_size = "0.1"

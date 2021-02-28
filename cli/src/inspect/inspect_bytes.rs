@@ -1,10 +1,9 @@
 use colored::{Color, Colorize};
-use semdoc_engine::atoms::*;
-use semdoc_engine::utils::*;
+use semdoc::Atom;
 use std::cmp::min;
 use std::convert::TryInto;
 
-use crate::utils::*;
+use super::utils::*;
 
 enum WordInfo {
     Header { version: u16 },
@@ -44,8 +43,8 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
     let mut cursor = 8;
     let mut id = 0;
     while cursor < bytes.len() {
-        let atom = Atom::from(&bytes[cursor..]).unwrap();
-        cursor += 8 * atom.length_in_words();
+        let atom = Atom::try_from(&bytes[cursor..]).unwrap();
+        cursor += atom.length_in_bytes();
         match atom {
             Atom::Block { kind, num_children } => info.push(WordInfo::Block {
                 id,
@@ -177,7 +176,13 @@ fn format_bytes_ascii(word: &[u8], info: &WordInfo) -> String {
     let styles = info.to_byte_styles();
     word.iter()
         .enumerate()
-        .map(|(i, byte)| byte.ascii_or_dot().to_string().color(styles[i]).to_string())
+        .map(|(i, byte)| {
+            byte.ascii_or_none()
+                .unwrap_or('.')
+                .to_string()
+                .color(styles[i])
+                .to_string()
+        })
         .collect::<Vec<_>>()
         .join("")
 }

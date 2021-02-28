@@ -1,8 +1,7 @@
 use colored::Colorize;
-use semdoc_engine::atoms::*;
-use semdoc_engine::memory::*;
+use semdoc::Atom;
 
-use crate::utils::*;
+use super::utils::*;
 
 pub fn inspect_atoms(file: &str) {
     println!("Inspecting atoms.");
@@ -10,23 +9,31 @@ pub fn inspect_atoms(file: &str) {
     let bytes = std::fs::read(file).expect("File not found.");
     let mut cursor = 8;
 
-    for _ in 0.. {
+    while cursor < bytes.len() {
         let atom = match Atom::try_from(&bytes[cursor..]) {
             Ok(atom) => atom,
-            Err(_) => {
-                println!("Error.");
+            Err(error) => {
+                println!("Error: {:?}", error);
                 return;
             }
         };
-        println!("{}: {}", cursor, format_atom_header(cursor, &atom),);
-        cursor += 8 * atom.length_in_words();
+        println!("{}: {}", cursor / 8, format_atom_header(cursor, &atom),);
+        cursor += atom.length_in_bytes();
     }
 }
 fn format_atom_header(id: Id, atom: &Atom) -> String {
     match atom {
         Atom::Block { kind, num_children } => format_atom_block_header(id, *kind, *num_children),
-        Atom::Bytes(bytes) => format_atom_bytes_header(id, bytes.len()),
-        Atom::FewBytes(bytes) => format_atom_few_bytes_header(id, bytes.len(), false),
+        Atom::Bytes(bytes) => format!(
+            "{}\n{}",
+            format_atom_bytes_header(id, bytes.len()),
+            format_bytes(bytes)
+        ),
+        Atom::FewBytes(bytes) => format!(
+            "{}\n{}",
+            format_atom_few_bytes_header(id, bytes.len(), false),
+            format_bytes(bytes),
+        ),
         Atom::Reference(offset) => format_atom_reference_header(id, *offset),
     }
 }
@@ -39,7 +46,8 @@ fn format_bytes(bytes: &[u8]) -> String {
     let ascii = bytes
         .iter()
         .map(|byte| {
-            byte.ascii_or_dot()
+            byte.ascii_or_none()
+                .unwrap_or('.')
                 .to_string()
                 .color(colors::PADDING)
                 .to_string()
