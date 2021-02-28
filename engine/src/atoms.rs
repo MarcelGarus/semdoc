@@ -1,4 +1,4 @@
-use super::utils::*;
+use crate::utils::*;
 
 pub type AtomKind = u64;
 

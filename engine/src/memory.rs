@@ -1,6 +1,6 @@
-use super::atoms::*;
-use super::molecule::*;
-use super::source::*;
+use crate::atoms::*;
+use crate::molecule::*;
+use crate::source::*;
 
 #[derive(Clone, Debug)]
 pub struct Memory {}
@@ -8,7 +8,7 @@ impl Source for Memory {
     type Error = MemoryError;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MemoryError {
     UnexpectedEnd,
 }
@@ -52,8 +52,8 @@ impl MemoryMolecule {
                 Atom::Reference(_offset) => {
                     todo!("Implement getting MemoryMolecule from Atom::Reference.")
                 }
-                Atom::Bytes(bytes) => (MemoryMolecule::Bytes(bytes.clone()), 1),
-                Atom::FewBytes(bytes) => (MemoryMolecule::Bytes(bytes.clone()), 1),
+                Atom::Bytes(bytes) => (MemoryMolecule::Bytes(bytes), 1),
+                Atom::FewBytes(bytes) => (MemoryMolecule::Bytes(bytes), 1),
             }),
         }
     }

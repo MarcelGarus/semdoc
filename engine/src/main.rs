@@ -13,7 +13,7 @@ use blocks::Block::*;
 use doc::*;
 
 pub fn main() {
-    let doc = PureSemDoc::new(Section {
+    let doc = SemDoc::<source::Pure>::new(Section {
         title: Box::new(Text("SemDoc".to_string())),
         body: Box::new(SplitSequence(vec![
             Text("Hello, world!".to_string()),
@@ -32,6 +32,6 @@ pub fn main() {
     let mut file = File::create("helloworld.sd").unwrap();
     file.write_all(&bytes).unwrap();
 
-    let doc = from_bytes(&bytes[..]);
+    let doc = SemDoc::from_bytes(&bytes[..]).unwrap();
     println!("Retrieved doc: {:?}", doc);
 }

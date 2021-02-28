@@ -1,14 +1,13 @@
 use std::convert::TryInto;
 
-use super::blocks::*;
-use super::memory::*;
-use crate::atoms::*;
+use crate::blocks::*;
+use crate::memory::*;
 use crate::source::*;
 
 const MAGIC_BYTES: &[u8] = b"SemDoc";
 const VERSION: u16 = 0;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SemDoc<S: Source> {
     pub block: Block<S>,
 }
@@ -33,18 +32,63 @@ impl<S: Source> SemDoc<S> {
         );
         bytes
     }
+
+    pub fn without_source_errors(self) -> Result<SemDoc<Pure>, S::Error> {
+        Ok(SemDoc::<Pure> {
+            block: self.block.without_source_errors()?,
+        })
+    }
+}
+impl SemDoc<Pure> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<SemDoc<Memory>, SemDocError> {
+        if bytes.len() < 8 {
+            return Err(SemDocError::UnexpectedEnd);
+        }
+        if !bytes.starts_with(MAGIC_BYTES) {
+            return Err(SemDocError::MagicBytesInvalid);
+        }
+        if u16::from_be_bytes(bytes[6..8].try_into().unwrap(/* slice has the right length */))
+            != VERSION
+        {
+            return Err(SemDocError::UnknownVersion);
+        }
+        let block = Block::from(&MemoryMolecule::from(&bytes[8..]));
+        Ok(SemDoc { block })
+    }
 }
 
-pub fn from_bytes(bytes: &[u8]) -> SemDoc<Memory> {
-    assert!(bytes.starts_with(MAGIC_BYTES));
-    assert_eq!(u16::from_be_bytes(bytes[6..8].try_into().unwrap()), VERSION);
-    let block = Block::from(&MemoryMolecule::from(&bytes[8..]));
-    SemDoc { block }
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum SemDocError {
+    UnexpectedEnd,
+    MagicBytesInvalid,
+    UnknownVersion,
 }
 
-#[derive(Debug, Clone)]
-pub struct Pure();
-impl Source for Pure {
-    type Error = ();
+#[cfg(test)]
+mod test {
+    use super::*;
+    use quickcheck::*;
+
+    impl quickcheck::Arbitrary for SemDoc<Pure> {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Self {
+                block: Block::arbitrary(g),
+            }
+        }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            Box::new(self.block.shrink().map(|block| Self { block }))
+        }
+    }
+
+    quickcheck! {
+        fn prop(doc: SemDoc<Pure>) -> bool {
+            let reencoded = match SemDoc::from_bytes(&doc.to_bytes()).map(|doc| doc.without_source_errors()) {
+                Ok(Ok(doc)) => doc,
+                Ok(Err(_)) => return false,
+                Err(_) => return false,
+            };
+            reencoded == doc
+        }
+    }
 }
-pub type PureSemDoc = SemDoc<Pure>;

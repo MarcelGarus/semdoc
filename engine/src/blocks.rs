@@ -2,7 +2,7 @@ use crate::molecule::*;
 use crate::source::*;
 
 // TODO(marcelgarus): Document.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Block<S: Source> {
     // Implementation-specific.
     Error(Error<S>),
@@ -19,7 +19,7 @@ pub enum Block<S: Source> {
 }
 use Block::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Error<S: Source> {
     BlockLayer(BlockError),
     LowerLayer(S::Error),
@@ -85,9 +85,26 @@ impl<S: Source> Block<S> {
             },
         }
     }
+
+    pub fn without_source_errors(self) -> Result<Block<Pure>, S::Error> {
+        Ok(match self {
+            Error(error) => Error(match error {
+                Error::BlockLayer(error) => Error::BlockLayer(error),
+                Error::LowerLayer(error) => return Err(error),
+            }),
+            Empty => Empty,
+            Text(text) => Text(text),
+            Section { title, body } => Section {
+                title: Box::new(title.without_source_errors()?),
+                body: Box::new(body.without_source_errors()?),
+            },
+            DenseSequence(items) => DenseSequence(items.without_source_errors()?),
+            SplitSequence(items) => SplitSequence(items.without_source_errors()?),
+        })
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlockError {
     ExpectedBlock,
     ExpectedBytes,
@@ -120,6 +137,71 @@ impl<S: Source> NeedBytes<S> for Molecule<S> {
         match self {
             Molecule::Bytes(bytes) => Ok(bytes.clone()),
             _ => Err(BlockError::ExpectedBytes),
+        }
+    }
+}
+trait VecWithoutSourceErrors<S: Source> {
+    fn without_source_errors(self) -> Result<Vec<Block<Pure>>, S::Error>;
+}
+impl<S: Source> VecWithoutSourceErrors<S> for Vec<Block<S>> {
+    fn without_source_errors(self) -> Result<Vec<Block<Pure>>, S::Error> {
+        self.into_iter()
+            .map(|item| item.without_source_errors())
+            .collect::<Result<_, _>>()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use quickcheck::*;
+    use std::cell::Cell;
+    use std::rc::Rc;
+
+    impl Arbitrary for Block<Pure> {
+        fn arbitrary(g: &mut Gen) -> Self {
+            match u64::arbitrary(g) % 9 {
+                // Blocks without children.
+                0 | 1 | 2 => Empty,
+                3 | 4 | 5 => Text(String::arbitrary(g)),
+                // Blocks with two children.
+                6 => Section {
+                    title: Box::new(Block::arbitrary(g)),
+                    body: Box::new(Block::arbitrary(g)),
+                },
+                // Blocks with a variable number of children.
+                7 => DenseSequence(Vec::arbitrary(g)),
+                8 => SplitSequence(Vec::arbitrary(g)),
+                _ => panic!("Modulo didn't work."),
+            }
+        }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            match self.clone() {
+                Empty => empty_shrinker(),
+                Text(text) => Box::new(text.shrink().map(Text)),
+                Section { title, body } => {
+                    let body_for_closure = body.clone();
+                    Box::new(
+                        single_shrinker(*title.clone())
+                            .chain(single_shrinker(*body.clone()))
+                            .chain(title.shrink().map(move |title| Section {
+                                title,
+                                body: body_for_closure.clone(),
+                            }))
+                            .chain(body.shrink().map(move |body| Section {
+                                title: title.clone(),
+                                body,
+                            })),
+                    )
+                }
+                DenseSequence(items) => Box::new(items.shrink().map(DenseSequence)),
+                SplitSequence(items) => Box::new(items.shrink().map(SplitSequence)),
+                Error(error) => panic!(
+                    "Error values should never be generated, but we were asked to shrink {:?}.",
+                    error
+                ),
+            }
         }
     }
 }

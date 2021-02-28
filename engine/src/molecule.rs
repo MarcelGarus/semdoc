@@ -1,5 +1,5 @@
-use super::atoms::*;
-use super::source::*;
+use crate::atoms::*;
+use crate::source::*;
 
 #[derive(Debug, Clone)]
 pub enum Molecule<S: Source> {
