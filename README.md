@@ -27,7 +27,7 @@ Instead, people use it for things it's utterly ill-fitted for in today's world:
 * **PDF organizes everything into pages.**
   This might have made sense back when you printed everything, but nowadays, we view PDFs on our screens.
   It's not like scrolling is a particularly new invention.
-* **The layout is completely static.**
+* **The layout is entirely static.**
   That's probably PDF's biggest downside.
   I mean, instead of a PDF, I could just as quickly give you a vector image that you can zoom around in (well, you can't select the text, but other than that, it's just as adaptive).  
   Do you want to view a PDF on a big landscape screen? Say hello to inefficient use of space.  
@@ -93,7 +93,17 @@ If you do want more control, you're welcome to build a website.
 Not defining the appearance also makes the format future-proof – it adapts to current devices just as well as to AR glasses.
 And a long-lived format is a win for everyone using it.
 
-## Todo
+## Roadmap
 
 - [x] Write vision
-- [ ] Develop format
+- [x] Implement base of the format
+- [ ] Implement block-level optimizations
+- [ ] Make format debuggable
+- [ ] Support blocks with more than 255 children
+- [ ] Use Reference atom
+- [ ] Document format
+- [ ] Implement document viewer in CLI
+- [ ] Improve quality of Markdown to SemDoc converter
+- [ ] Optimize performance
+- [ ] Implement intermediary language for editing SemDocs
+- [ ] Put process in place for proposing new blocks
