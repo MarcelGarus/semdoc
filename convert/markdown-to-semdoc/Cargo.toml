@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 pulldown-cmark = "0.8"
-semdoc_engine = { path = "../../engine" }
+semdoc = { path = "../../engine" }

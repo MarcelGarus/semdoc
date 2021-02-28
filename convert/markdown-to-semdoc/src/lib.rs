@@ -1,13 +1,13 @@
-use pulldown_cmark::{Event, Options, Parser, Tag};
-use semdoc_engine::{Block, PureSemDoc};
-use std::iter::Peekable;
+use pulldown_cmark::{Options, Parser};
+use semdoc::{Pure, SemDoc};
+// use std::iter::Peekable;
 
-pub fn markdown_to_semdoc(markdown: &str) -> PureSemDoc {
+pub fn markdown_to_semdoc(markdown: &str) -> SemDoc<Pure> {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_STRIKETHROUGH);
     options.insert(Options::ENABLE_TASKLISTS);
 
-    let mut parser = Parser::new_ext(markdown, options);
+    let mut _parser = Parser::new_ext(markdown, options);
     // let block = parse_root(0, false, &mut parser.peekable());
     // SemDoc::new(block)
     todo!()

@@ -20,7 +20,7 @@ name = "markdown_to_semdoc"
 version = "0.0.1"
 dependencies = [
  "pulldown-cmark",
- "semdoc_engine",
+ "semdoc",
 ]
 
 [[package]]
@@ -42,7 +42,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "semdoc_engine"
+name = "semdoc"
 version = "0.0.1"
 
 [[package]]
