@@ -39,8 +39,8 @@ impl<S: Source> SemDoc<S> {
         })
     }
 }
-impl SemDoc<Pure> {
-    pub fn from_bytes(bytes: &[u8]) -> Result<SemDoc<Memory>, SemDocError> {
+impl SemDoc<Memory> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SemDocError> {
         if bytes.len() < 8 {
             return Err(SemDocError::UnexpectedEnd);
         }

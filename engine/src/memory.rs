@@ -23,22 +23,23 @@ impl MemoryMolecule {
     }
 }
 impl MemoryMolecule {
+    /// Tries to parse a `MemoryModule` from the given `bytes`.
+    ///
+    /// If successful, returns both the parsed `Module` and the number of bytes
+    /// that were consumed.
     fn try_from(bytes: &[u8]) -> Result<(MemoryMolecule, usize), MemoryError> {
-        // TODO(marcelgarus): Handle AtomErrors correctly.
-        let atom = Atom::try_from(bytes);
-        println!("Bytes are {:?}", bytes);
-        println!("Got atom {:?}", atom);
-        match atom {
-            Err(err) => Err(MemoryError::UnexpectedEnd), // TODO: Create proper error.
+        match Atom::try_from(bytes) {
+            // TODO: Create proper error based on the actual error that happened.
+            Err(_) => Err(MemoryError::UnexpectedEnd),
             Ok(atom) => Ok(match atom {
                 Atom::Block { kind, num_children } => {
                     let mut children = vec![];
                     let mut cursor = 8;
                     for _ in 0..num_children {
                         match MemoryMolecule::try_from(&bytes[cursor..]) {
-                            Ok((data, consumed_atoms)) => {
+                            Ok((data, consumed_bytes)) => {
                                 children.push(data);
-                                cursor += consumed_atoms;
+                                cursor += consumed_bytes;
                             }
                             Err(_) => break,
                         }
@@ -52,8 +53,14 @@ impl MemoryMolecule {
                 Atom::Reference(_offset) => {
                     todo!("Implement getting MemoryMolecule from Atom::Reference.")
                 }
-                Atom::Bytes(bytes) => (MemoryMolecule::Bytes(bytes), 1),
-                Atom::FewBytes(bytes) => (MemoryMolecule::Bytes(bytes), 1),
+                Atom::Bytes(bytes) => {
+                    let len = Atom::Bytes(bytes.clone()).length_in_bytes();
+                    (MemoryMolecule::Bytes(bytes), len)
+                }
+                Atom::FewBytes(bytes) => {
+                    let len = Atom::FewBytes(bytes.clone()).length_in_bytes();
+                    (MemoryMolecule::Bytes(bytes), len)
+                }
             }),
         }
     }

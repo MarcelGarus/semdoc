@@ -1,14 +1,17 @@
 #[cfg(test)]
 extern crate quickcheck;
 
-pub mod atoms;
+mod atoms;
 mod blocks;
 mod doc;
-pub mod memory;
-pub mod molecule;
-pub mod source;
-pub mod utils;
+mod memory;
+mod molecule;
+mod source;
+mod utils;
 
-pub use blocks::*;
-pub use doc::*;
-pub use source::*;
+pub use atoms::{Atom, AtomError};
+pub use blocks::{Block, BlockError};
+pub use doc::{SemDoc, SemDocError};
+pub use memory::{Memory, MemoryError};
+pub use molecule::Molecule;
+pub use source::{Pure, Source};

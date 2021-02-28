@@ -19,16 +19,15 @@ pub enum AtomError {
 }
 
 impl Atom {
-    pub fn length_in_words(&self) -> usize {
+    pub fn length_in_bytes(&self) -> usize {
         use Atom::*;
 
         match self {
-            Block { .. } => 1,
-            Reference(_) => 1,
-            Bytes(bytes) => 1 + bytes.len().round_up_to_multiple_of(8) / 8,
+            Block { .. } => 8,
+            Reference(_) => 8,
+            Bytes(bytes) => 8 + bytes.len().round_up_to_multiple_of(8),
             FewBytes(bytes) => {
-                1 + (if bytes.len() < 6 { 0 } else { bytes.len() - 6 }).round_up_to_multiple_of(8)
-                    / 8
+                8 + (if bytes.len() < 6 { 0 } else { bytes.len() - 6 }).round_up_to_multiple_of(8)
             }
         }
     }
