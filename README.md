@@ -75,6 +75,10 @@ Immutability makes them legally binding.
 Latency might forbid you from collaborating with people living on Mars.
 **The concept of transferring a file is straightforward to understand for us humans because files are like things.**
 
+---
+
+[Here's an explanation of the format.](format.md)
+
 ## Roadmap
 
 - [x] Write vision
