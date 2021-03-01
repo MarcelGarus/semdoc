@@ -2,7 +2,11 @@
 name = "semdoc"
 version = "0.0.1"
 authors = ["Marcel Garus <marcel.garus@gmail.com>"]
+description = "SemDoc is a document file format that allows writers to focus on the content solely and empowers readers to adapt the appearance to their devices and needs."
+documentation = "https://github.com/marcelgarus/semdoc"
+repository = "https://github.com/marcelgarus/semdoc"
 edition = "2018"
+license = "MIT"
 
 [dev-dependencies]
 quickcheck = "1"
