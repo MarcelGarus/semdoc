@@ -1,6 +1,3 @@
-#[cfg(test)]
-extern crate quickcheck;
-
 mod atoms;
 mod blocks;
 mod doc;

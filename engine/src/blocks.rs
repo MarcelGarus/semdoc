@@ -19,6 +19,77 @@ pub enum Block<S: Source> {
 }
 use Block::*;
 
+impl<S: Source> Block<S> {
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Empty)
+    }
+    pub fn simplify(self) -> Block<S> {
+        use Block::*;
+        match self {
+            Error(error) => Error(error),
+            Empty => Empty,
+            Text(text) => {
+                if text.is_empty() {
+                    Empty
+                } else {
+                    Text(text)
+                }
+            }
+            Section { title, body } =>  {
+                let title = title.simplify();
+                let body = body.simplify();
+                if title.is_empty() {
+                    body
+                } else {
+                    Section { title: Box::new(title), body: Box::new(body) }
+                }
+            }
+            DenseSequence(blocks) => {
+                let blocks = blocks.simplify();
+                // Merge adjacent texts.
+                let mut text = "".to_owned();
+                let mut simple_blocks = vec![];
+                for block in blocks {
+                    match block {
+                        Text(additional_text) => text += &additional_text,
+                        other => {
+                            if !text.is_empty() {
+                                simple_blocks.push(Text(text));
+                                text = "".to_owned();
+                            }
+                            simple_blocks.push(other)
+                        }
+                    }
+                }
+                if !text.is_empty() {
+                    simple_blocks.push(Text(text));
+                }
+                match simple_blocks.len() {
+                    0 => Block::Empty,
+                    1 => simple_blocks.first().unwrap().clone(),
+                    _ => DenseSequence(simple_blocks)
+                }
+            },
+            SplitSequence(blocks) => {
+                let blocks = blocks.simplify();
+                match blocks.len() {
+                    0 => Block::Empty,
+                    1 => blocks.first().unwrap().clone(),
+                    _ => SplitSequence(blocks.simplify())
+                }
+            }
+        }
+    }
+}
+trait SimplifyAll<S: Source> {
+    fn simplify(self) -> Vec<Block<S>>;
+}
+impl<S: Source> SimplifyAll<S> for Vec<Block<S>> {
+    fn simplify(self) -> Vec<Block<S>> {
+        self.into_iter().map(|block| block.simplify()).filter(|block| !block.is_empty()).collect()
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Error<S: Source> {
     BlockLayer(BlockError),

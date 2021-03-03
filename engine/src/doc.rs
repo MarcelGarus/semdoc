@@ -67,7 +67,6 @@ pub enum SemDocError {
 #[cfg(test)]
 mod test {
     use super::*;
-    use quickcheck::*;
 
     impl quickcheck::Arbitrary for SemDoc<Pure> {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
@@ -81,9 +80,9 @@ mod test {
         }
     }
 
-    quickcheck! {
+    quickcheck::quickcheck! {
         fn prop(doc: SemDoc<Pure>) -> bool {
-            let reencoded = match SemDoc::from_bytes(&doc.to_bytes()).map(|doc| doc.without_source_errors()) {
+            let reencoded = match SemDoc::from_bytes(&doc.to_bytes()).map(|doc| doc.into_pure()) {
                 Ok(Ok(doc)) => doc,
                 Ok(Err(_)) => return false,
                 Err(_) => return false,
