@@ -1,7 +1,7 @@
 This document describes what a SemDoc file contains.
 We'll do so by lowering the following "Hello, world!" document:
 
-> #### SemDoc
+> ### SemDoc
 >
 > Hello, world!
 >
@@ -32,7 +32,7 @@ The "Hello, world!" document will be represented as the following tree of blocks
     * **Text**: `"Hello, world!"`
     * **Text**: `"This is a test."`
 
-### Molecule
+### Molecules
 
 Next, blocks are lowered into *molecules*.
 There are only two types of molecules: bytes and blocks (containing a kind and possibly multiple children).
