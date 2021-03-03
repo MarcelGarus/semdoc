@@ -1,4 +1,4 @@
-<img src="semdoc.svg" />
+<img src="semdoc.svg" width="92px" />
 
 ## SemDoc – Semantic Document
 
