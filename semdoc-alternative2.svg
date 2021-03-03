@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns:svg="http://www.w3.org/2000/svg"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="30dp"
+  height="35dp"
+  viewBox="0 0 4 5"
+  version="1.1">
+  <linearGradient id="g" x1="1" y1="2" x2="1.8" y2="1">
+    <stop style="stop-color:#6a01d5" offset="0" />
+    <stop style="stop-color:#ff3513" offset="1" />
+  </linearGradient>
+  <g id="logo">
+    <!-- <path
+      style="fill:url(#g)"
+      d="M0,0 H3 L4,1 V5 H0 z M1,4 H3 V1 H1 Z" /> -->
+    <path
+      style="fill:url(#g)"
+      d="M0,0 H3 L4,1 V5 H0 Z" />
+  </g>
+</svg>
