@@ -55,10 +55,7 @@ pub fn format_atom_block_header(id: Id, kind: u64, num_children: u8) -> String {
         format!(
             "{} {}",
             num_children,
-            match num_children {
-                1 => "child",
-                _ => "children",
-            }
+            singular_or_plural(num_children.into(), "child", "children")
         )
         .color(colors::NUM_CHILDREN),
     )
@@ -106,10 +103,7 @@ fn format_n_bytes_long(num_bytes: usize, trailing_comma: bool) -> String {
     format!(
         "{} {} long{}",
         num_bytes,
-        match num_bytes {
-            1 => "byte",
-            _ => "bytes",
-        },
+        singular_or_plural(num_bytes, "byte", "bytes"),
         match trailing_comma {
             true => ", ",
             false => "",
@@ -127,6 +121,13 @@ pub fn format_payload_label(plus_padding: bool) -> String {
             false => "".to_owned(),
         }
     )
+}
+
+fn singular_or_plural(amount: usize, singular: &'static str, plural: &'static str) -> &'static str {
+    match amount {
+        1 => singular,
+        _ => plural,
+    }
 }
 
 pub trait AsciiOrDot {

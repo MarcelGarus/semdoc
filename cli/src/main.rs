@@ -1,5 +1,6 @@
 use clap::{App, AppSettings, Arg, SubCommand};
 use std::fs::File;
+use semdoc::SemDoc;
 use std::io::prelude::*;
 
 mod inspect;
@@ -59,6 +60,11 @@ fn eat(file: &str) {
     let content = std::fs::read_to_string(file).expect("File not found.");
     let doc = markdown_to_semdoc::markdown_to_semdoc(&content);
 
+    let mut file = File::create("converted.sd").unwrap();
+    file.write_all(&doc.to_bytes()).unwrap();
+    inspect_blocks("converted.sd");
+
+    let doc = SemDoc::new(doc.block.simplify());
     let mut file = File::create("converted.sd").unwrap();
     file.write_all(&doc.to_bytes()).unwrap();
     inspect_blocks("converted.sd");
