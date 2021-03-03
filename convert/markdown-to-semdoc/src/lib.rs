@@ -1,112 +1,78 @@
-use pulldown_cmark::{Options, Parser};
-use semdoc::{Pure, SemDoc};
-// use std::iter::Peekable;
+use semdoc::{Block, Pure, SemDoc};
+use comrak::{ComrakOptions, Arena, parse_document,  nodes::{AstNode, NodeValue}};
 
 pub fn markdown_to_semdoc(markdown: &str) -> SemDoc<Pure> {
-    let mut options = Options::empty();
-    options.insert(Options::ENABLE_STRIKETHROUGH);
-    options.insert(Options::ENABLE_TASKLISTS);
+    let arena = Arena::new();
 
-    let mut _parser = Parser::new_ext(markdown, options);
-    // let block = parse_root(0, false, &mut parser.peekable());
-    // SemDoc::new(block)
-    todo!()
+    let root = parse_document(
+        &arena,
+        markdown,
+        &ComrakOptions::default(),);
+
+    SemDoc::new(root.to_block())
 }
 
-// fn parse_root<'a, I: Iterator<Item = Event<'a>>>(
-//     current_level: u32,
-//     is_inside_paragraph: bool,
-//     events: &mut Peekable<I>,
-// ) -> (Block, Option<u32>) {
-//     println!("Parsing root at level {}", current_level);
-//     let blocks = parse_multiple(current_level, is_inside_paragraph, events);
-//     if is_inside_paragraph {
-//         Block::DenseSequence(blocks)
-//     } else {
-//         Block::SplitSequence(blocks)
-//     }
-// }
+trait ToBlock<'a> {
+    fn to_block(&'a self) -> Block<Pure>;
+}
+impl<'a> ToBlock<'a> for AstNode<'a> {
+    fn to_block(&'a self) -> Block<Pure> {
+        use NodeValue::*;
+        match self.data.borrow().value.clone() {
+            Document => {
+                Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+            },
+            Heading(_) => {
+                Block::Section {
+                    title: Box::new(Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())),
+                    body: Box::new(Block::Empty),
+                }
+            },
+            Paragraph => {
+                Block::DenseSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+            },
+            Text(text) => {
+                Block::Text(String::from_utf8(text).unwrap())
+            },
+            SoftBreak => Block::Text(" ".to_owned()),
+            Emph => {
+                // TODO(marcelgarus): Handle emphasis.
+                Block::DenseSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+            }
+            Strong => {
+                // TODO(marcelgarus): Handle strong text.
+                Block::DenseSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+            }
+            List(_) => {
+                // TODO(marcelgarus): Handle list better.
+                Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+            },
+            Item(_) => {
+                Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+            },
+            HtmlBlock(_) => {
+                // TODO(marcelgarus): Handle HTML better.
+                Block::Empty
+            },
+            ThematicBreak => Block::Empty,
+            Link(link) => {
+                // TODO(marcelgarus): Handle links better.
+                Block::Text(String::from_utf8(link.title).unwrap())
+            },
+            _ => {
+                println!("Not handling node {:?} yet.", self);
+                Block::Empty
+            }
+        }
+    }
 
-// fn parse_multiple<'a, I: Iterator<Item = Event<'a>>>(
-//     current_level: u32,
-//     is_inside_paragraph: bool,
-//     events: &mut Peekable<I>,
-// ) -> (Vec<Block>, Option<u32>) {
-//     let mut blocks = vec![];
-//     loop {
-//         match events.next() {
-//             Some(event) => match event {
-//                 Event::Start(tag) => match tag {
-//                     Tag::Paragraph => {
-//                         blocks.push(parse_root(current_level, true, events));
-//                     }
-//                     Tag::Heading(level) => {
-//                         if level <= current_level {
-//                             return (blocks, Some(level));
-//                         }
-//                         let title = parse_root(level, true, events);
-//                         let content = parse_root(level, false, events);
-//                         // blocks.push(Block::Section {
-//                         //     title: Box::new(title),
-//                         //     body: Box::new(content),
-//                         // });
-//                     }
-//                     _ => {
-//                         println!("Handling start of {:?}", tag);
-//                         blocks.push(parse_root(current_level, is_inside_paragraph, events));
-//                     }
-//                 },
-//                 Event::Text(text) => blocks.push(Block::Text(text.to_string())),
-//                 Event::SoftBreak | Event::HardBreak => {}
-//                 Event::End(_) => {
-//                     return (blocks, None);
-//                 }
-//                 _ => println!("Unhandled event: {:?}", event),
-//             },
-//             None => return (blocks, None),
-//         }
-//     }
-// }
+}
+trait ToBlocks {
+    fn to_blocks(&self) -> Vec<Block<Pure>>;
+}
+impl<'a> ToBlocks for [&'a AstNode<'a>] {
+    fn to_blocks(&self) -> Vec<Block<Pure> >{
+        self.iter().map(|node| node.to_block()).collect()
+    }
 
-// fn parse_section<'a, I: Iterator<Item = Event<'a>>>(
-//     events: &mut Peekable<I>,
-//     level: usize,
-// ) -> Block {
-//     let mut title = vec![];
-//     let mut blocks = vec![];
-//     match events.next() {
-//         Event::Start(Heading(level)) {
-//             parse_
-//         }
-//     }
-
-//     loop {
-//         match events.next() {
-//             Some(event) => match event {
-//                 Event::Start(tag) => match tag {
-//                     Tag::Paragraph => {
-//                         blocks.push(Block::Empty);
-//                     }
-//                     Tag::Heading(_) => blocks.push(Block::Section {
-//                         title: Box::new(Block::DenseSequence(helper(events))),
-//                         body: Box::new(Block::Empty),
-//                     }),
-//                     _ => blocks.extend_from_slice(&helper(events)),
-//                 },
-//                 Event::Text(text) => blocks.push(Block::Text(text.to_string())),
-//                 Event::SoftBreak | Event::HardBreak => {}
-//                 Event::End(_) => {
-//                     return blocks;
-//                 }
-//                 _ => println!("Unhandled event: {:?}", event),
-//             },
-//             None => return blocks,
-//         }
-//     }
-// }
-
-// fn parse_content<'a, I: Iterator<Item = Event<'a>>>(
-//     events: &mut Peekable<I>,
-//     level: usize,
-// ) -> Block {
-// }
+}
