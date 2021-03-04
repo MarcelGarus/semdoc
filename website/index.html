@@ -1,7 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-US">
+
 <head>
   <title>SemDoc</title>
+  <meta name="description" content="A document file format that allows writers to focus on the content solely and empowers readers to adapt the appearance to their devices and needs.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fdc61e">
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@700&family=Roboto:wght@200&display=swap');
 
@@ -11,31 +16,31 @@
       margin: 0;
     }
 
-    .content {
+    section {
       margin: auto;
       position: relative;
       top: 50%;
       transform: translateY(-50%);
     }
 
-    .logo {
+    header {
       display: flex;
       justify-content: center;
       margin-bottom: 1em;
       align-items: center;
     }
 
-    .logo>img {
+    header>svg {
       width: 3em;
     }
 
-    .logo>span {
+    header>h1 {
       margin: 0.3em 0 0 0.5em;
       font-family: 'Josefin Sans', sans-serif;
-      font-size: 2em;
+      font-size: 2.2em;
     }
 
-    .catchphrase {
+    .vision {
       font-family: 'Roboto', sans-serif;
       font-size: 0.9em;
       max-width: 25em;
@@ -52,23 +57,28 @@
       font-family: 'Josefin Sans', sans-serif;
       color: #ef0164 !important;
     }
+
   </style>
 </head>
 
 <body>
-  <div class="content">
-    <div class="logo">
-      <img src="../semdoc.svg" alt="SemDoc logo" />
-      <span>SemDoc</span>
-    </div>
-    <div class="catchphrase">
+  <section>
+    <header>
+      <svg viewBox="-1 1 2 2" alt="SemDoc logo">
+        <path fill="#fdc61e" d="M -0.9,1.5 0,1 0.9,1.5 0,2 Z" />
+        <path fill="#ef0164" d="M 0,2 0.9,1.5 0.9,2.5 0,3 Z" />
+        <path fill="#6a1cd5" d="M -0.9,1.5 -0.9,2.5 0,3 0,2 Z" />
+      </svg>
+      <h1>SemDoc</h1>
+    </header>
+    <div class="vision">
       A document file format that allows writers to focus on the content solely and empowers readers to adapt the
-      appearance
-      to their devices and needs.
+      appearance to their devices and needs.
     </div>
     <div class="go">
       <a href="https://github.com/marcelgarus/semdoc">Find out more</a>
     </div>
-  </div>
+  </section>
 </body>
+
 </html>
