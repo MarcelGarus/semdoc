@@ -15,7 +15,7 @@ use doc::*;
 pub fn main() {
     let doc = SemDoc::<source::Pure>::new(Section {
         title: Box::new(Text("SemDoc".to_string())),
-        body: Box::new(SplitSequence(vec![
+        body: Box::new(Paragraphs(vec![
             Text("Hello, world!".to_string()),
             Text("This is a test. Hello!".to_string()),
         ])),

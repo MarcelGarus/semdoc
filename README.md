@@ -26,7 +26,7 @@ But I'm not too fond of PDF for general content consumption:
 
 Fundamentally, PDF gives most of the control to document *creators*, leaving none to readers.
 
-In constrast, SemDoc follows these principles:
+In contrast, SemDoc follows these principles:
 
 * **Be a compile target.**
   It doesn't aim to be readable to humans or be edited by hand; instead, it's an efficient binary format.
@@ -87,9 +87,9 @@ Latency might forbid you from collaborating with people living on Mars.
 - [x] Implement base of the format
 - [x] Make format debuggable
 - [x] Document format
+- [x] Implement block-level optimizations
 - [ ] Add more blocks
 - [ ] Improve the quality of Markdown to SemDoc converter
-- [ ] Implement block-level optimizations
 - [ ] Support blocks with more than 255 children
 - [ ] Use Reference atom
 - [ ] Implement document viewer in CLI

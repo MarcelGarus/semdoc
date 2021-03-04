@@ -13,7 +13,6 @@ fn format_block<S: Source>(block: &Block<S>) -> String {
 
     match block {
         Error(_) => format_block_kind("Error"),
-        // Unknown { .. } => format_block_kind("Unknown"),
         Empty => format_block_kind("Empty"),
         Text(text) => format!("{}: {}", format_block_kind("Text"), text),
         Section { title, body } => format!(
@@ -21,14 +20,24 @@ fn format_block<S: Source>(block: &Block<S>) -> String {
             format_block_kind("Section"),
             format_children_with_roles(vec![("title", title), ("body", body)]),
         ),
-        DenseSequence(items) => format!(
+        Flow(children) => format!(
             "{}\n{}",
-            format_block_kind("DenseSequence"),
+            format_block_kind("Flow"),
+            format_children_without_roles(&children[..]),
+        ),
+        Paragraphs(children) => format!(
+            "{}\n{}",
+            format_block_kind("Paragraphs"),
+            format_children_without_roles(&children[..]),
+        ),
+        BulletList(items) =>  format!(
+            "{}\n{}",
+            format_block_kind("BulletList"),
             format_children_without_roles(&items[..]),
         ),
-        SplitSequence(items) => format!(
+        OrderedList(items) =>  format!(
             "{}\n{}",
-            format_block_kind("SplitSequence"),
+            format_block_kind("OrderedList"),
             format_children_without_roles(&items[..]),
         ),
     }

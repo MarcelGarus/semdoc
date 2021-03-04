@@ -1,5 +1,5 @@
 use semdoc::{Block, Pure, SemDoc};
-use comrak::{ComrakOptions, Arena, parse_document,  nodes::{AstNode, NodeValue}};
+use comrak::{ComrakOptions, Arena, parse_document,  nodes::{AstNode, NodeValue, ListType}};
 
 pub fn markdown_to_semdoc(markdown: &str) -> SemDoc<Pure> {
     let arena = Arena::new();
@@ -20,16 +20,16 @@ impl<'a> ToBlock<'a> for AstNode<'a> {
         use NodeValue::*;
         match self.data.borrow().value.clone() {
             Document => {
-                Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+                Block::Paragraphs(self.children().collect::<Vec<_>>().clone().to_blocks())
             },
             Heading(_) => {
                 Block::Section {
-                    title: Box::new(Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())),
+                    title: Box::new(Block::Paragraphs(self.children().collect::<Vec<_>>().clone().to_blocks())),
                     body: Box::new(Block::Empty),
                 }
             },
             Paragraph => {
-                Block::DenseSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+                Block::Flow(self.children().collect::<Vec<_>>().clone().to_blocks())
             },
             Text(text) => {
                 Block::Text(String::from_utf8(text).unwrap())
@@ -37,18 +37,22 @@ impl<'a> ToBlock<'a> for AstNode<'a> {
             SoftBreak => Block::Text(" ".to_owned()),
             Emph => {
                 // TODO(marcelgarus): Handle emphasis.
-                Block::DenseSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+                Block::Flow(self.children().collect::<Vec<_>>().clone().to_blocks())
             }
             Strong => {
                 // TODO(marcelgarus): Handle strong text.
-                Block::DenseSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+                Block::Flow(self.children().collect::<Vec<_>>().clone().to_blocks())
             }
-            List(_) => {
-                // TODO(marcelgarus): Handle list better.
-                Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+            List(list) => {
+                let items = self.children().collect::<Vec<_>>().clone().to_blocks();
+                println!("List type is {:?}", list.list_type);
+                match list.list_type {
+                    ListType::Bullet => Block::BulletList(items),
+                    ListType::Ordered => Block::OrderedList(items),
+                }
             },
             Item(_) => {
-                Block::SplitSequence(self.children().collect::<Vec<_>>().clone().to_blocks())
+                Block::Paragraphs(self.children().collect::<Vec<_>>().clone().to_blocks())
             },
             HtmlBlock(_) => {
                 // TODO(marcelgarus): Handle HTML better.

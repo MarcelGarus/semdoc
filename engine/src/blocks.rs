@@ -1,21 +1,57 @@
 use crate::molecule::*;
 use crate::source::*;
 
-// TODO(marcelgarus): Document.
+/// Every SemDoc is a composition of blocks.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Block<S: Source> {
     // Implementation-specific.
+
+    /// Indicates that an error occurred.
+    ///
+    /// Usually, this block is not intentionally created by users. Instead, the engine creates it if
+    /// some data couldn't be parsed. The contained error is one of these:
+    ///
+    /// * An error of the block layer: The molecule got parsed correctly. Creating a block from the
+    ///   molecule failed though.
+    /// * An error of a lower layer: The parsing of the molecule didn't even work. An error of the
+    ///   source is contained.
     Error(Error<S>),
 
     // General content.
+
+    /// A placeholder to indicate that there is no content.
+    ///
+    /// For example, an empty document is just this block. A mathematical root without an explicit
+    /// root number could contain an empty block.
     Empty,
+
+    /// A text.
+    ///
+    /// Contains a valid Unicode String.
     Text(String),
+
+    /// A block that gives another block a title.
+    ///
+    /// Usually, the title teases or summarizes the body.
     Section {
         title: Box<Block<S>>,
         body: Box<Block<S>>,
     },
-    DenseSequence(Vec<Block<S>>),
-    SplitSequence(Vec<Block<S>>),
+
+    /// Displays multiple other blocks one after another without a content break.
+    ///
+    /// All children should be considered to come immediately after each other. For example, a flow
+    /// containing the texts "He" and "llo" should be semantically equivalent to just "Hello".
+    Flow(Vec<Block<S>>),
+
+    /// Displays multiple other blocks with a small content break.
+    Paragraphs(Vec<Block<S>>),
+
+    /// Displays multiple blocks in a bullet list.
+    BulletList(Vec<Block<S>>),
+
+    /// Displays multiple blocks in a numbered list.
+    OrderedList(Vec<Block<S>>),
 }
 use Block::*;
 
@@ -44,40 +80,44 @@ impl<S: Source> Block<S> {
                     Section { title: Box::new(title), body: Box::new(body) }
                 }
             }
-            DenseSequence(blocks) => {
-                let blocks = blocks.simplify();
+            Flow(children) => {
+                let original_children = children.simplify();
+                
                 // Merge adjacent texts.
+                let mut children = vec![];
                 let mut text = "".to_owned();
-                let mut simple_blocks = vec![];
-                for block in blocks {
-                    match block {
+                for child in original_children {
+                    match child {
                         Text(additional_text) => text += &additional_text,
                         other => {
                             if !text.is_empty() {
-                                simple_blocks.push(Text(text));
+                                children.push(Text(text));
                                 text = "".to_owned();
                             }
-                            simple_blocks.push(other)
+                            children.push(other)
                         }
                     }
                 }
                 if !text.is_empty() {
-                    simple_blocks.push(Text(text));
+                    children.push(Text(text));
                 }
-                match simple_blocks.len() {
-                    0 => Block::Empty,
-                    1 => simple_blocks.first().unwrap().clone(),
-                    _ => DenseSequence(simple_blocks)
+    
+                match children.len() {
+                    0 => Empty,
+                    1 => children.first().unwrap().clone(),
+                    _ => Flow(children)
                 }
             },
-            SplitSequence(blocks) => {
-                let blocks = blocks.simplify();
-                match blocks.len() {
-                    0 => Block::Empty,
-                    1 => blocks.first().unwrap().clone(),
-                    _ => SplitSequence(blocks.simplify())
+            Paragraphs(children) => {
+                let children = children.simplify();
+                match children.len() {
+                    0 => Empty,
+                    1 => children.first().unwrap().clone(),
+                    _ => Paragraphs(children)
                 }
             }
+            BulletList(items) => BulletList(items.simplify()),
+            OrderedList(items) => OrderedList(items.simplify()),
         }
     }
 }
@@ -100,8 +140,10 @@ pub mod kinds {
     pub const EMPTY: u64 = 0;
     pub const TEXT: u64 = 1;
     pub const SECTION: u64 = 2;
-    pub const DENSE_SEQUENCE: u64 = 3;
-    pub const SPLIT_SEQUENCE: u64 = 4;
+    pub const FLOW: u64 = 3;
+    pub const PARAGRAPHS: u64 = 4;
+    pub const BULLET_LIST: u64 = 5;
+    pub const ORDERED_LIST: u64 = 6;
 }
 
 impl<S: Source> Block<S> {
@@ -116,12 +158,12 @@ impl<S: Source> Block<S> {
                 kinds::SECTION,
                 vec![title.to_molecule(), body.to_molecule()],
             ),
-            DenseSequence(items) => {
-                Molecule::block(kinds::DENSE_SEQUENCE, items.clone().into_molecules())
+            Flow(children) => Molecule::block(kinds::FLOW, children.clone().into_molecules()),
+            Paragraphs(children) => {
+                Molecule::block(kinds::PARAGRAPHS, children.clone().into_molecules())
             }
-            SplitSequence(items) => {
-                Molecule::block(kinds::SPLIT_SEQUENCE, items.clone().into_molecules())
-            }
+            BulletList(items) => Molecule::block(kinds::BULLET_LIST, items.clone().into_molecules()),
+            OrderedList(items) => Molecule::block(kinds::ORDERED_LIST, items.clone().into_molecules()),
         }
     }
 
@@ -136,12 +178,14 @@ impl<S: Source> Block<S> {
                 title: Box::new(Block::from(&children.need_at(0)?)),
                 body: Box::new(Block::from(&children.need_at(1)?)),
             }),
-            kinds::DENSE_SEQUENCE => Ok(DenseSequence(
-                children.iter().map(|data| Block::from(data)).collect(),
+            kinds::FLOW => Ok(Flow(
+                children.into_blocks(),
             )),
-            kinds::SPLIT_SEQUENCE => Ok(SplitSequence(
-                children.iter().map(|data| Block::from(data)).collect(),
+            kinds::PARAGRAPHS => Ok(Paragraphs(
+                children.into_blocks(),
             )),
+            kinds::BULLET_LIST => Ok(BulletList(children.into_blocks())),
+            kinds::ORDERED_LIST => Ok(OrderedList(children.into_blocks())),
             _kind => Err(BlockError::UnknownKind),
         }
     }
@@ -169,8 +213,10 @@ impl<S: Source> Block<S> {
                 title: Box::new(title.into_pure()?),
                 body: Box::new(body.into_pure()?),
             },
-            DenseSequence(items) => DenseSequence(items.into_pure()?),
-            SplitSequence(items) => SplitSequence(items.into_pure()?),
+            Flow(children) => Flow(children.into_pure()?),
+            Paragraphs(children) => Paragraphs(children.into_pure()?),
+            BulletList(items) => BulletList(items.into_pure()?),
+            OrderedList(items) => OrderedList(items.into_pure()?),
         })
     }
 }
@@ -190,6 +236,14 @@ trait IntoMolecules<S: Source> {
 impl<S: Source> IntoMolecules<S> for Vec<Block<S>> {
     fn into_molecules(self) -> Vec<Molecule<S>> {
         self.iter().map(|child| child.to_molecule()).collect()
+    }
+}
+trait IntoBlocks<S: Source> {
+    fn into_blocks(self) -> Vec<Block<S>>;
+}
+impl<S: Source> IntoBlocks<S> for Vec<Molecule<S>> {
+    fn into_blocks(self) -> Vec<Block<S>> {
+        self.into_iter().map(|data| Block::from(&data)).collect()
     }
 }
 trait NeedAt<S: Source> {
@@ -239,8 +293,8 @@ mod test {
                     body: Box::new(Block::arbitrary(g)),
                 },
                 // Blocks with a variable number of children.
-                7 => DenseSequence(Vec::arbitrary(g)),
-                8 => SplitSequence(Vec::arbitrary(g)),
+                7 => Flow(Vec::arbitrary(g)),
+                8 => Paragraphs(Vec::arbitrary(g)),
                 _ => panic!("Modulo didn't work."),
             }
         }
@@ -264,12 +318,14 @@ mod test {
                             })),
                     )
                 }
-                DenseSequence(items) => Box::new(items.shrink().map(DenseSequence)),
-                SplitSequence(items) => Box::new(items.shrink().map(SplitSequence)),
+                Flow(children) => Box::new(children.shrink().map(Flow)),
+                Paragraphs(children) => Box::new(children.shrink().map(Paragraphs)),
                 Error(error) => panic!(
                     "Error values should never be generated, but we were asked to shrink {:?}.",
                     error
                 ),
+                BulletList(items) => Box::new(items.shrink().map(BulletList)),
+                OrderedList(items) => Box::new(items.shrink().map(OrderedList)),
             }
         }
     }
