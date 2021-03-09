@@ -44,6 +44,24 @@ impl MemoryMolecule {
                             Err(_) => break,
                         }
                     }
+                    while (children.len() as u64) < num_children {
+                        children.push(Molecule::Error(MemoryError::UnexpectedEnd));
+                    }
+                    let data = Molecule::block(kind, children);
+                    (data, cursor)
+                }
+                Atom::SmallBlock { kind, num_children } => {
+                    let mut children = vec![];
+                    let mut cursor = 8;
+                    for _ in 0..num_children {
+                        match MemoryMolecule::try_from(&bytes[cursor..]) {
+                            Ok((data, consumed_bytes)) => {
+                                children.push(data);
+                                cursor += consumed_bytes;
+                            }
+                            Err(_) => break,
+                        }
+                    }
                     while children.len() < num_children.into() {
                         children.push(Molecule::Error(MemoryError::UnexpectedEnd));
                     }

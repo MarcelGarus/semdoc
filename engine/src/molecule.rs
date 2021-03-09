@@ -27,9 +27,16 @@ impl<S: Source> Molecule<S> {
     fn to_atoms_into(&self, output: &mut Vec<Atom>) {
         match self {
             Molecule::Block { kind, children } => {
-                output.push(Atom::Block {
-                    kind: *kind,
-                    num_children: children.len() as u8, // TODO(marcelgarus): Handle overflow.
+                output.push(if children.len() < 256 {
+                    Atom::SmallBlock {
+                        kind: *kind,
+                        num_children: children.len() as u8,
+                    }
+                } else {
+                    Atom::Block {
+                        kind: *kind,
+                        num_children: children.len() as u64,
+                    }
                 });
                 for child in children {
                     child.to_atoms_into(output);
