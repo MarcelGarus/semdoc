@@ -3,12 +3,26 @@ use semdoc::Atom;
 
 use super::utils::*;
 
+pub mod colors {
+    use colored::Color;
+
+    pub const ATOM_KIND: Color = Color::Yellow;
+    pub const BLOCK_KIND: Color = Color::Green;
+    pub const NUM_CHILDREN: Color = Color::BrightRed;
+    pub const LENGTH: Color = Color::BrightRed;
+}
+
 pub fn inspect_atoms(file: &str) {
     println!("Inspecting atoms.");
 
     let bytes = std::fs::read(file).expect("File not found.");
     let mut cursor = 8;
 
+    let width = terminal_size::terminal_size()
+        .map(|size| size.0 .0 as usize)
+        .unwrap_or(80);
+
+    println!("{:4}  {}", "Word".bold(), "Atom".bold(),);
     while cursor < bytes.len() {
         let atom = match Atom::try_from(&bytes[cursor..]) {
             Ok(atom) => atom,
@@ -17,42 +31,86 @@ pub fn inspect_atoms(file: &str) {
                 return;
             }
         };
-        println!("{}: {}", cursor / 8, format_atom_header(cursor, &atom),);
+        println!("{:4}  {}", cursor / 8, format_atom(&atom, width),);
         cursor += atom.length_in_bytes();
     }
 }
-fn format_atom_header(id: Id, atom: &Atom) -> String {
+
+fn format_atom(atom: &Atom, width: usize) -> String {
     match atom {
-        Atom::Block { kind, num_children } => format_atom_block_header(id, *kind, *num_children),
+        Atom::Block { kind, num_children } => format!(
+            "{}{}{}",
+            format_atom_type("Block"),
+            format!("kind {} ({}), ", kind, kind_to_name(*kind)).color(colors::BLOCK_KIND),
+            format_n_children(*num_children as usize),
+        ),
+        Atom::SmallBlock { kind, num_children } => {
+            format!(
+                "{}{}{}",
+                format_atom_type("SmallBlock"),
+                format!("kind {} ({}), ", kind, kind_to_name(*kind)).color(colors::BLOCK_KIND),
+                format_n_children(*num_children as usize).color(colors::NUM_CHILDREN),
+            )
+        }
         Atom::Bytes(bytes) => format!(
             "{}\n{}",
-            format_atom_bytes_header(id, bytes.len()),
-            format_bytes(bytes)
+            format!(
+                "{}{}",
+                format_atom_type("Bytes"),
+                format_n_bytes_long(bytes.len(), false),
+            ),
+            format_bytes(bytes, width),
         ),
         Atom::FewBytes(bytes) => format!(
             "{}\n{}",
-            format_atom_few_bytes_header(id, bytes.len(), false),
-            format_bytes(bytes),
+            format!(
+                "{}{}",
+                format_atom_type("FewBytes"),
+                format_n_bytes_long(bytes.len(), bytes.len() > 0),
+            ),
+            format_bytes(&bytes, width),
         ),
-        Atom::Reference(offset) => format_atom_reference_header(id, *offset),
+        Atom::Reference(offset) => {
+            format!("{}{}", format_atom_type("Reference"), offset)
+        }
     }
 }
-fn format_bytes(bytes: &[u8]) -> String {
-    let hex = bytes
-        .iter()
-        .map(|byte| format!("{:02x}", byte).color(colors::PAYLOAD).to_string())
+
+fn format_atom_type(atom_type: &str) -> String {
+    format!("{}, ", atom_type)
+        .color(colors::ATOM_KIND)
+        .bold()
+        .to_string()
+}
+
+fn format_n_children(num_children: usize) -> String {
+    format!(
+        "{} {}",
+        num_children,
+        singular_or_plural(num_children, "child", "children")
+    )
+    .color(colors::NUM_CHILDREN)
+    .to_string()
+}
+
+fn format_n_bytes_long(num_bytes: usize, trailing_comma: bool) -> String {
+    format!(
+        "{} {} long{}",
+        num_bytes,
+        singular_or_plural(num_bytes, "byte", "bytes"),
+        match trailing_comma {
+            true => ", ",
+            false => "",
+        }
+    )
+    .color(colors::LENGTH)
+    .to_string()
+}
+
+fn format_bytes(bytes: &[u8], width: usize) -> String {
+    format_payload_bytes(bytes, width - 6)
+        .split("\n")
+        .map(|line| format!("      {}", line))
         .collect::<Vec<_>>()
-        .join(" ");
-    let ascii = bytes
-        .iter()
-        .map(|byte| {
-            byte.ascii_or_none()
-                .unwrap_or('.')
-                .to_string()
-                .color(colors::PADDING)
-                .to_string()
-        })
-        .collect::<Vec<_>>()
-        .join("");
-    format!("{}\n{}", hex, ascii)
+        .join("\n")
 }
