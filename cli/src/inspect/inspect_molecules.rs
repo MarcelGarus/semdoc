@@ -16,12 +16,7 @@ pub fn inspect_molecules(file: &str) {
 
     println!(
         "{}",
-        format_molecule::<Memory>(
-            &molecule,
-            terminal_size::terminal_size()
-                .map(|size| size.0 .0 as usize)
-                .unwrap_or(80),
-        ),
+        format_molecule::<Memory>(&molecule, terminal_width_or_80()),
     );
 }
 

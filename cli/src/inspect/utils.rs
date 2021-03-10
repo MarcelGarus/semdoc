@@ -21,9 +21,11 @@ pub fn kind_to_name(kind: u64) -> String {
         0 => "Empty",
         1 => "Text",
         2 => "Section",
-        3 => "DenseSequence",
-        4 => "SplitSequence",
-        _ => "Unknown",
+        3 => "Flow",
+        4 => "Paragraphs",
+        5 => "BulletList",
+        6 => "OrderedList",
+        _ => "unknown",
     }
     .to_owned()
 }
@@ -60,6 +62,12 @@ impl RoundUpToMultipleOf for usize {
     fn round_up_to_multiple_of(&self, number: Self) -> Self {
         self + (number - self % number) % number
     }
+}
+
+pub fn terminal_width_or_80() -> usize {
+    terminal_size::terminal_size()
+        .map(|size| size.0 .0 as usize)
+        .unwrap_or(80)
 }
 
 /// Formats payload bytes in both hex and ascii.

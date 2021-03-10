@@ -18,10 +18,6 @@ pub fn inspect_atoms(file: &str) {
     let bytes = std::fs::read(file).expect("File not found.");
     let mut cursor = 8;
 
-    let width = terminal_size::terminal_size()
-        .map(|size| size.0 .0 as usize)
-        .unwrap_or(80);
-
     println!("{:4}  {}", "Word".bold(), "Atom".bold(),);
     while cursor < bytes.len() {
         let atom = match Atom::try_from(&bytes[cursor..]) {
@@ -31,7 +27,11 @@ pub fn inspect_atoms(file: &str) {
                 return;
             }
         };
-        println!("{:4}  {}", cursor / 8, format_atom(&atom, width),);
+        println!(
+            "{:4}  {}",
+            cursor / 8,
+            format_atom(&atom, terminal_width_or_80()),
+        );
         cursor += atom.length_in_bytes();
     }
 }
