@@ -7,7 +7,7 @@ We'll do so by lowering the following "Hello, world!" document:
 >
 > This is a test.
 
-Btw: What we'll do now is exactly what the *SemDoc engine* does when saving a SemDoc – you might want to check out the Rust code that does this; it's available as the `semdoc` crate.
+Btw: What we'll do now is what the *SemDoc engine* does when saving a SemDoc – you might want to check out the Rust code that does this; it's available as the `semdoc` crate.
 
 You can also inspect each of these layers of a SemDoc by using the `semdoc file.sd inspect <layer name>` command.
 

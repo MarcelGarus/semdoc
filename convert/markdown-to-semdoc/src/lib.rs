@@ -1,15 +1,13 @@
-use std::cell::RefCell;
-
 use comrak::{
     arena_tree::Children,
     nodes::{Ast, AstNode, ListType, NodeValue},
     parse_document, Arena, ComrakOptions,
 };
 use semdoc::{Block, Pure, SemDoc};
+use std::cell::RefCell;
 
 pub fn markdown_to_semdoc(markdown: &str) -> SemDoc<Pure> {
     let arena = Arena::new();
-
     let root = parse_document(&arena, markdown, &ComrakOptions::default());
 
     SemDoc::new(root.to_block())
