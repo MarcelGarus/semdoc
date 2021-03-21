@@ -88,11 +88,25 @@ Latency might forbid you from collaborating with people living on Mars.
 - [x] Make format debuggable
 - [x] Document format
 - [x] Implement block-level optimizations
-- [ ] Add more blocks
+- [x] Support blocks with more than 255 children
+- [x] Add more blocks
 - [ ] Improve the quality of Markdown to SemDoc converter
-- [ ] Support blocks with more than 255 children
 - [ ] Use Reference atom
 - [ ] Implement document viewer in CLI
+- [ ] Implement document viewer in Flutter
 - [ ] Optimize performance
 - [ ] Put process in place for proposing new blocks
 - [ ] Implement intermediary language for editing SemDocs
+
+## Block ideas
+
+- [ ] pixel images
+- [ ] vector images
+- [ ] redacted
+- [ ] comments
+- [ ] signed
+- [ ] secondary
+- [ ] more info
+- [ ] links
+- [ ] highlighting
+- [ ] quote
