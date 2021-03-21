@@ -14,7 +14,7 @@ fn format_block<S: Source>(block: &Block<S>, width: usize, offset: usize) -> Str
     use Block::*;
 
     match block {
-        Error(_) => format_block_kind("Error"),
+        Error(error) => format!("{}: {:?}", format_block_kind("Error"), error),
         Empty => format_block_kind("Empty"),
         Text(text) => format!(
             "{}{}",
