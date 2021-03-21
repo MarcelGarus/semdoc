@@ -1,13 +1,14 @@
 use colored::{Color, Colorize};
-use semdoc::Atom;
-use std::cmp::min;
+use semdoc::{Atom, AtomError};
 use std::convert::TryInto;
+use std::{cmp::min, fmt::format};
 
 use super::utils::*;
 
 mod colors {
     use colored::Color;
 
+    pub const ERROR: Color = Color::Red;
     pub const MAGIC: Color = Color::BrightMagenta;
     pub const VERSION: Color = Color::Yellow;
     pub const ATOM_KIND: Color = Color::Yellow;
@@ -19,6 +20,8 @@ mod colors {
 }
 
 enum WordInfo {
+    Error { error: AtomError },
+    ErrorContinuation,
     Header { version: u16 },
     Block { kind: u64 },
     BlockContinuation { num_children: u64 },
@@ -75,7 +78,18 @@ fn info_for_bytes(bytes: &[u8]) -> Vec<WordInfo> {
 
     let mut cursor = 8;
     while cursor < bytes.len() {
-        let atom = Atom::try_from(&bytes[cursor..]).unwrap();
+        let atom = match Atom::try_from(&bytes[cursor..]) {
+            Ok(atom) => atom,
+            Err(error) => {
+                info.push(WordInfo::Error { error });
+                cursor += 8;
+                while cursor < bytes.len() {
+                    info.push(WordInfo::ErrorContinuation);
+                    cursor += 8;
+                }
+                break;
+            }
+        };
         cursor += atom.length_in_bytes();
         match atom {
             Atom::Block { kind, num_children } => {
@@ -111,6 +125,7 @@ impl WordInfo {
     fn to_byte_styles(&self) -> [Color; 8] {
         use colors::*;
         match self {
+            WordInfo::Error { .. } | WordInfo::ErrorContinuation => [ERROR; 8],
             WordInfo::Header { .. } => [MAGIC, MAGIC, MAGIC, MAGIC, MAGIC, MAGIC, VERSION, VERSION],
             WordInfo::Block { .. } => [ATOM_KIND, PADDING, KIND, KIND, KIND, KIND, KIND, KIND],
             WordInfo::BlockContinuation { .. } => [NUM_CHILDREN; 8],
@@ -165,7 +180,9 @@ fn format_bytes_ascii(word: &[u8], info: &WordInfo) -> String {
 }
 
 fn format_info(info: &WordInfo) -> String {
-    match *info {
+    match info {
+        WordInfo::Error { error } => format!("Error: {:?}", error).red().to_string(),
+        WordInfo::ErrorContinuation => format!(""),
         WordInfo::Header { version } => {
             format!(
                 "Header with {}{}",
@@ -177,42 +194,42 @@ fn format_info(info: &WordInfo) -> String {
             "{}{}{}",
             format_atom_kind("Block"),
             "padding, ".color(colors::PADDING),
-            format!("kind {} ({}), ", kind, kind_to_name(kind)).color(colors::KIND),
+            format!("kind {} ({}), ", kind, kind_to_name(*kind)).color(colors::KIND),
         ),
         WordInfo::BlockContinuation { num_children } => format!(
             "{} {}",
             num_children,
-            singular_or_plural(num_children as usize, "child", "children")
+            singular_or_plural(*num_children as usize, "child", "children")
         )
         .color(colors::NUM_CHILDREN)
         .to_string(),
         WordInfo::SmallBlock { kind, num_children } => format!(
             "{}{}{}",
             format_atom_kind("SmallBlock"),
-            format!("kind {} ({}), ", kind, kind_to_name(kind)).color(colors::KIND),
+            format!("kind {} ({}), ", kind, kind_to_name(*kind)).color(colors::KIND),
             format!(
                 "{} {}",
                 num_children,
-                singular_or_plural(num_children.into(), "child", "children")
+                singular_or_plural(*num_children as usize, "child", "children")
             )
             .color(colors::NUM_CHILDREN),
         ),
         WordInfo::Bytes { length } => format!(
             "{}{}",
             format_atom_kind("Bytes"),
-            format_n_bytes_long(length as usize, false),
+            format_n_bytes_long(*length as usize, false),
         ),
         WordInfo::FewBytes { length } => {
             format!(
                 "{}{}",
                 format_atom_kind("FewBytes"),
-                format_n_bytes_long(length as usize, false),
+                format_n_bytes_long(*length as usize, false),
             )
         }
         WordInfo::BytesContinuation { num_relevant, .. } => format!(
             "{}{}",
             "Payload".color(colors::PAYLOAD),
-            if num_relevant < 8 {
+            if *num_relevant < 8 {
                 " + padding".color(colors::PADDING).to_string()
             } else {
                 "".to_string()
