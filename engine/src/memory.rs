@@ -44,9 +44,6 @@ impl MemoryMolecule {
                             Err(_) => break,
                         }
                     }
-                    while (children.len() as u64) < num_children {
-                        children.push(Molecule::Error(MemoryError::UnexpectedEnd));
-                    }
                     let data = Molecule::block(kind, children);
                     (data, cursor)
                 }
@@ -61,9 +58,6 @@ impl MemoryMolecule {
                             }
                             Err(_) => break,
                         }
-                    }
-                    while children.len() < num_children.into() {
-                        children.push(Molecule::Error(MemoryError::UnexpectedEnd));
                     }
                     let data = Molecule::block(kind, children);
                     (data, cursor)
