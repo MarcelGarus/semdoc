@@ -1,0 +1,12 @@
+[package]
+name = "semdoc_server"
+version = "0.0.1"
+authors = ["Marcel Garus <marcel.garus@gmail.com>"]
+documentation = "https://github.com/marcelgarus/semdoc"
+repository = "https://github.com/marcelgarus/semdoc"
+readme = "../README.md"
+edition = "2018"
+license = "MIT"
+
+[dependencies]
+jsonrpc = "0.12.0"
