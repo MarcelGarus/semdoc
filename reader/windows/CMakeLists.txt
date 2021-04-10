@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
-project(viewer LANGUAGES CXX)
+project(semdoc-reader LANGUAGES CXX)
 
-set(BINARY_NAME "viewer")
+set(BINARY_NAME "semdoc-reader")
 
 cmake_policy(SET CMP0063 NEW)
 

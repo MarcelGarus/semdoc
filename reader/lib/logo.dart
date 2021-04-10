@@ -98,7 +98,7 @@ class _LogoState extends State<Logo> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 200,
+      width: 180,
       height: 200,
       child: TweenAnimationBuilder<Dimensions>(
         tween: Tween(begin: Dimensions.all(50), end: _dimensions),

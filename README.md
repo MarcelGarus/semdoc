@@ -92,8 +92,8 @@ Latency might forbid you from collaborating with people living on Mars.
 - [x] Add more blocks
 - [ ] Improve the quality of Markdown to SemDoc converter
 - [ ] Use Reference atom
-- [ ] Implement document viewer in CLI
-- [ ] Implement document viewer in Flutter
+- [ ] Implement document reader in CLI
+- [ ] Implement document reader in Flutter
 - [ ] Optimize performance
 - [ ] Put process in place for proposing new blocks
 - [ ] Implement intermediary language for editing SemDocs

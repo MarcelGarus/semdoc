@@ -1,6 +1,6 @@
 ## Protocol
 
-This document documents the protocol between the engine process and the viewer.
+This document documents the protocol between the engine process and the reader.
 
 The protocol uses JSON.
 

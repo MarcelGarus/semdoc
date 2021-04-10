@@ -1,4 +1,4 @@
-# viewer
+# SemDoc Reader
 
 A new Flutter project.
 

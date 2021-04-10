@@ -1,5 +1,5 @@
-name: semdoc_viewer
-description: A viewer for SemDoc files.
+name: semdoc_reader
+description: A reader for SemDoc files.
 publish_to: "none"
 version: 1.0.0+1
 
