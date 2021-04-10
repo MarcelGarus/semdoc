@@ -7,7 +7,7 @@ pub fn inspect_blocks(file: &str) {
     let bytes = std::fs::read(file).expect("File not found.");
     let doc = SemDoc::from_bytes(&bytes).unwrap();
 
-    println!("{}", format_block(&doc.block, terminal_width_or_80(), 0));
+    print!("{}", format_block(&doc.block, terminal_width_or_80(), 0));
 }
 
 fn format_block<S: Source>(block: &Block<S>, width: usize, offset: usize) -> String {

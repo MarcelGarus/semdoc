@@ -1,7 +1,7 @@
 use colored::{Color, Colorize};
 use semdoc::{Atom, AtomError};
+use std::cmp::min;
 use std::convert::TryInto;
-use std::{cmp::min, fmt::format};
 
 use super::utils::*;
 

@@ -14,7 +14,7 @@ pub fn inspect_molecules(file: &str) {
     let bytes = std::fs::read(file).expect("File not found.");
     let molecule = Molecule::from(&bytes[8..]);
 
-    println!(
+    print!(
         "{}",
         format_molecule::<Memory>(&molecule, terminal_width_or_80()),
     );
