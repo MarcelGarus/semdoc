@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+enum Dimension { width, height, depth }
+
 /// Like [Size], but in 3D.
 class Dimensions {
   Dimensions(this.width, this.height, this.depth);
@@ -13,12 +15,24 @@ class Dimensions {
   final double height;
   final double depth;
 
+  double operator [](Dimension dimension) {
+    switch (dimension) {
+      case Dimension.width:
+        return width;
+      case Dimension.height:
+        return height;
+      case Dimension.depth:
+        return depth;
+    }
+  }
+
   Dimensions operator +(Dimensions other) => Dimensions(
       width + other.width, height + other.height, depth + other.depth);
   Dimensions operator -(Dimensions other) => Dimensions(
       width - other.width, height - other.height, depth - other.depth);
   Dimensions operator *(double factor) =>
       Dimensions(width * factor, height * factor, depth * factor);
+
   bool operator ==(Object other) =>
       other is Dimensions &&
       width == other.width &&
@@ -31,12 +45,42 @@ class Dimensions {
         width ?? this.width, height ?? this.height, depth ?? this.depth);
   }
 
-  Dimensions withOneDimensionRandomlyMutated(
-    double min,
-    double max,
-    double minDelta,
-  ) {
-    assert(2 * minDelta < max - min);
+  Dimensions copyWithChangedDimension(Dimension dimension, double newSize) {
+    switch (dimension) {
+      case Dimension.width:
+        return copyWith(width: newSize);
+      case Dimension.height:
+        return copyWith(height: newSize);
+      case Dimension.depth:
+        return copyWith(depth: newSize);
+    }
+  }
+}
+
+class Logo extends StatefulWidget {
+  @override
+  _LogoState createState() => _LogoState();
+}
+
+class _LogoState extends State<Logo> {
+  var _dimensions = Dimensions.all(50);
+  var _lastMutatedDimension = Dimension.height;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.doWhile(() async {
+      await Future.delayed(Duration(milliseconds: 1500));
+      if (!this.mounted) return false;
+      setState(_mutateDimensions);
+      return true;
+    });
+  }
+
+  void _mutateDimensions() {
+    const min = 10.0;
+    const max = 100.0;
+    const minDelta = 20.0;
 
     final random = Random();
 
@@ -45,7 +89,7 @@ class Dimensions {
       // similar to the current one. The value should change at least by
       // `minDelta`.
       //
-      // This leaves two ranges where to choose the value from:
+      // This leaves two ranges to choose the value from:
       //
       //    min                     current               max
       // xxxx|--------------------|xxxx|xxxx|--------------|xxxxxxxxxxx
@@ -63,36 +107,12 @@ class Dimensions {
           : (rightRangeMin + r - leftRangeSize);
     }
 
-    final whichDimension = random.nextDouble();
-    if (whichDimension < 0.33) {
-      return copyWith(width: mutateRandomly(width));
-    } else if (whichDimension < 0.66) {
-      return copyWith(height: mutateRandomly(height));
-    } else {
-      return copyWith(depth: mutateRandomly(depth));
-    }
-  }
-}
-
-class Logo extends StatefulWidget {
-  @override
-  _LogoState createState() => _LogoState();
-}
-
-class _LogoState extends State<Logo> {
-  var _dimensions = Dimensions.all(50);
-
-  @override
-  void initState() {
-    super.initState();
-    Future.doWhile(() async {
-      await Future.delayed(Duration(milliseconds: 1500));
-      if (!this.mounted) return false;
-      setState(() {
-        _dimensions = _dimensions.withOneDimensionRandomlyMutated(10, 100, 20);
-      });
-      return true;
-    });
+    final dimension = Dimension.values
+        .toSet()
+        .difference({_lastMutatedDimension}).toList()[random.nextInt(2)];
+    _dimensions = _dimensions.copyWithChangedDimension(
+        dimension, mutateRandomly(_dimensions[dimension]));
+    _lastMutatedDimension = dimension;
   }
 
   @override
