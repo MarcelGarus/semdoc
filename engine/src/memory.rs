@@ -2,7 +2,7 @@ use crate::atoms::*;
 use crate::molecule::*;
 use crate::source::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Memory {}
 impl Source for Memory {
     type Error = MemoryError;
